@@ -257,6 +257,8 @@ void updateMode () {
   mode = (Mode) map(pot_val, 0, 1023, 0, 4);
 }
 
+int num_cons_red_loops = 0;
+
 void loop() {
   // Battery signal
   volt_reg = analogRead(LED_IN);
@@ -276,8 +278,16 @@ void loop() {
     writeColors(LOW, HIGH, LOW);
   }
   
-    // if battery signal is above RED_THRESH, run rest of loop()
-  if (volt_reg >= RED_THRESH) {
+  // counts number of consecutive loops where battery is below RED_THRESH
+  if (volt_reg < RED_THRESH) {
+    num_cons_red_loops += 1;
+  }
+  else {
+    num_cons_red_loops = 0;
+  }
+    
+  // Runs rest of loop() only if battery has been above RED_THRESH at least once within last 5 loops
+  if (num_cons_red_loops < 5) {
   
     //Wait for muscle signal
     while (analogRead(MYO_PIN) < threshold) {
