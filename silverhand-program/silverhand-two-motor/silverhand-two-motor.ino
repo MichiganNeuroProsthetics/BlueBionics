@@ -276,31 +276,35 @@ void loop() {
     writeColors(LOW, HIGH, LOW);
   }
   
-  //Wait for muscle signal
-  while (analogRead(MYO_PIN) < threshold) {
-    //DEBUG
-    //Serial.println(analogRead(MYO_PIN));
-    // return; // check how long writing to LEDs is
+    // if battery signal is above RED_THRESH, run rest of loop()
+  if (volt_reg >= RED_THRESH) {
+  
+    //Wait for muscle signal
+    while (analogRead(MYO_PIN) < threshold) {
+      //DEBUG
+      //Serial.println(analogRead(MYO_PIN));
+      // return; // check how long writing to LEDs is
+    }
+  
+    // Make purple while in use/above threshold
+    writeColors(HIGH, LOW, HIGH);
+
+    //Toggle Servo Logic if flexed for at least PULSEWIDTH  
+    //Keep Signal to Actuation Delay around 1 second.
+
+    // Check if mode has changed;
+    updateMode();
+  
+    // If the smooth read is above the threshold, it's a flex
+    if (smoothRead() > threshold){
+      // TODO: Add any necessary parameters
+      updateMotors();
+    }
+  
+    //Wait for PULSEWIDTH time
+    delay(PULSEWIDTH);
+
+    // Wait until below threshold if not already
+    while (analogRead(MYO_PIN) > threshold) {}
   }
-  
-  // Make purple while in use/above threshold
-  writeColors(HIGH, LOW, HIGH);
-
-  //Toggle Servo Logic if flexed for at least PULSEWIDTH  
-  //Keep Signal to Actuation Delay around 1 second.
-
-  // Check if mode has changed;
-  updateMode();
-  
-  // If the smooth read is above the threshold, it's a flex
-  if (smoothRead() > threshold){
-    // TODO: Add any necessary parameters
-    updateMotors();
-  }
-  
-  //Wait for PULSEWIDTH time
-  delay(PULSEWIDTH);
-
-  // Wait until below threshold if not already
-  while (analogRead(MYO_PIN) > threshold) {}
 }
