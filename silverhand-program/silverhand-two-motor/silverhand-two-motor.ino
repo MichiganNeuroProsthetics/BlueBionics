@@ -287,8 +287,8 @@ void loop() {
     num_cons_red_loops = 0;
   }
     
-  // Runs rest of loop() only if battery has been above RED_THRESH at least once within last 5 loops
-  if (num_cons_red_loops < 5) {
+  // Runs rest of loop() only if battery has been above RED_THRESH at least once within last 10 loops
+  if (num_cons_red_loops < 10) {
   
     //Wait for muscle signal
     while (analogRead(MYO_PIN) < threshold) {
