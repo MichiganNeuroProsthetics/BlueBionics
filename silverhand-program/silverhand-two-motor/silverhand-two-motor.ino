@@ -143,6 +143,9 @@ void calibrateSimple() {
   // Serial.println("Calibratation Ended");
 }
 
+// inititalizes counter for battery safety, used in loop()
+int num_cons_red_loops = 0;
+
 void setup() {
   //Set up servo
   ti_servo.attach(TI_SERVO_PIN);
@@ -256,8 +259,6 @@ void updateMode () {
   int pot_val = analogRead(MODE_POT_PIN);
   mode = (Mode) map(pot_val, 0, 1023, 0, 4);
 }
-
-int num_cons_red_loops = 0;
 
 void loop() {
   // Battery signal
