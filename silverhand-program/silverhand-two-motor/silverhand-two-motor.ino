@@ -15,8 +15,8 @@
 
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise
-#define SMOOTH_READS 32
-// Multiplier for threshold so that the threshold is attainable. e.g. threshold = min(flex_max * 0.8,  moving_max)
+#define SMOOTH_READS 16
+// Multiplier for threshold so that the threshold is attainable. e.g. threshold = min(flex_max * 0.65,  moving_max)
 #define THRESH_MULTIPLIER 0.65
 
 //Pins for the 4 LED components
@@ -254,7 +254,7 @@ void updateMotors () {
 // Potentiometer-based control of mode selection
 void updateMode () {
   int pot_val = analogRead(MODE_POT_PIN);
-  mode = (Mode) map(pot_val, 0, 1023, 0, 4);
+  mode = (Mode) map(pot_val % 500, 0, 499, 0, 3);
 }
 
 void loop() {
@@ -277,7 +277,7 @@ void loop() {
   }
   
   //Wait for muscle signal
-  while (analogRead(MYO_PIN) < threshold) {
+  while (smoothRead(MYO_PIN) < threshold) {
     //DEBUG
     //Serial.println(analogRead(MYO_PIN));
     // return; // check how long writing to LEDs is
@@ -302,5 +302,5 @@ void loop() {
   delay(PULSEWIDTH);
 
   // Wait until below threshold if not already
-  while (analogRead(MYO_PIN) > threshold) {}
+  while (smoothRead(MYO_PIN) > threshold) {}
 }
