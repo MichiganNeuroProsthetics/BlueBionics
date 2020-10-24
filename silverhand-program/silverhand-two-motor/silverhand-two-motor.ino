@@ -277,7 +277,7 @@ void loop() {
   }
   
   //Wait for muscle signal
-  while (smoothRead(MYO_PIN) < threshold) {
+  while (smoothRead() < threshold) {
     //DEBUG
     //Serial.println(analogRead(MYO_PIN));
     // return; // check how long writing to LEDs is
@@ -302,5 +302,5 @@ void loop() {
   delay(PULSEWIDTH);
 
   // Wait until below threshold if not already
-  while (smoothRead(MYO_PIN) > threshold) {}
+  while (smoothRead() > threshold) {}
 }
