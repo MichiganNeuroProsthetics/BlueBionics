@@ -20,9 +20,9 @@
 #define THRESH_MULTIPLIER 0.65
 
 //Pins for the 4 LED components
-#define LED_PIN_R 4 // Red
-#define LED_PIN_G 3 // Green
-#define LED_PIN_B 2 // Blue
+#define LED_PIN_R 2 // Red
+#define LED_PIN_G 4 // Green
+#define LED_PIN_B 3 // Blue
 #define LED_IN A3   // LED input
 
 //The thresholds for the various LED colors - must be above each to show each respective color
