@@ -4,7 +4,7 @@
 #define MOSFET_PIN_TI 9 // 1st MOFSET pin; thumb, index finger
 #define MOSFET_PIN_MRP 10 // 2nd MOFSET pin; middle finger, ring finger, pinky
 #define MYO_PIN A2 //Pin for the sensor
-#define MODE_POT_PIN A4 // Potentiometer for mode control
+#define MODE_POT_PIN A7 // Potentiometer for mode control
 #define OPEN 0 // 0 degree rotation for open
 #define CLOSE 180 // 180 degree rotation for close
 #define PULSEWIDTH 50 //in ms
@@ -12,6 +12,7 @@
 #define SYSTEMDELAY 750 // delay for servo motors; want to try 1200
 #define DEFAULT_THRESH 300 // must be above 300 to change position
 #define DEFAULT_RELAXTHRESH 275 // must be below 275 to be able to read another flex
+#define POT_MAX 504 // the maximum value for the potentiometer
 
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise
@@ -254,7 +255,7 @@ void updateMotors () {
 // Potentiometer-based control of mode selection
 void updateMode () {
   int pot_val = analogRead(MODE_POT_PIN);
-  mode = (Mode) map(pot_val % 500, 0, 499, 0, 3);
+  mode = (Mode) map(pot_val % POT_MAX, 0, POT_MAX, 0, 3);
 }
 
 void loop() {
