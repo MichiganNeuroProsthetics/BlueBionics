@@ -255,7 +255,7 @@ void updateMotors () {
 // Potentiometer-based control of mode selection
 void updateMode () {
   int pot_val = analogRead(MODE_POT_PIN);
-  mode = (Mode) map(pot_val % POT_MAX, 0, POT_MAX, 0, 3);
+  mode = (Mode) map(pot_val % POT_MAX, 0, POT_MAX, 0, 4);
 }
 
 void loop() {
