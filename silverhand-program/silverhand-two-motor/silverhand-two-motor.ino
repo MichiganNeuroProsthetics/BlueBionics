@@ -16,9 +16,11 @@
 
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise
-#define SMOOTH_READS 16
+#define SMOOTH_READS 8
 // Multiplier for threshold so that the threshold is attainable. e.g. threshold = min(flex_max * 0.65,  moving_max)
 #define THRESH_MULTIPLIER 0.65
+// What the threshold for being allowed to flex is again as a proportion of the regular threshold
+#define RELAX_THRESH_MULTIPLIER 0.9
 
 //Pins for the 4 LED components
 #define LED_PIN_R 2 // Red
@@ -38,7 +40,7 @@ enum states {
 };
 
 // Number of samples to take for determining the maximum signal for moving one's arm around and for flexing
-#define POLL_TIME 4000 // 4 seconds
+#define POLL_TIME 3000 // 3 seconds
 // Delay between the blinking light, in milliseconds
 #define DELAY_BLINK 500
 // Simulated delay for the servo motors to activate
@@ -60,11 +62,11 @@ enum Mode {
 Mode mode;
 
 /* Modes
- * A: Go between open hand and fist or between the secondary positions; change both motor positions
- * B: Pinching
- * C: Change mrp position
- * D: Grab cycle - open hand -> pointing -> fist -> open hand -> ...
- * E: Go between open hand and fist, exclusively
+ * Full: Go between open hand and fist or between the secondary positions; change both motor positions
+ * TI: Pinching (update thumb and index finger)
+ * MRP: Change middle finger, ring finger, and pinky position
+ * Grab: Grab cycle - open hand -> pointing -> fist -> open hand -> ...
+ * Any: Go between open hand and fist, exclusively
 */
 
 // #define the location of the new stuff, and probably change the old stuff
@@ -294,14 +296,12 @@ void loop() {
   updateMode();
   
   // If the smooth read is above the threshold, it's a flex
-  if (smoothRead() > threshold){
-    // TODO: Add any necessary parameters
-    updateMotors();
-  }
+  // TODO: Add any necessary parameters
+  updateMotors();
   
   //Wait for PULSEWIDTH time
   delay(PULSEWIDTH);
 
-  // Wait until below threshold if not already
-  while (smoothRead() > threshold) {}
+  // Wait until below relax threshold if not already
+  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
 }
