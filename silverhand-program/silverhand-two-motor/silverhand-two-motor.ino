@@ -21,7 +21,7 @@
 #define POT_MAX 504 // the maximum value for the potentiometer
 
 // Parameters to fine tune
-// Number of reads to take in order to smooth out noise; it is recommended to take a power of 2  for computational efficiency
+// Number of reads to take in order to smooth out noise; it is recommended to take a power of 2 for computational efficiency
 #define SMOOTH_READS 8
 // Multiplier for threshold so that the threshold is attainable. e.g. threshold = min(flex_max * 0.65,  moving_max)
 #define THRESH_MULTIPLIER 0.65
@@ -45,11 +45,9 @@ enum states {
 #define DELAY_BLINK 500
 // Simulated delay for the servo motors to activate
 #define DELAY_SERVO 250
+
 // Set whether we're using calibration mode or normal use, where the threshold is predefined
-//static bool state = CALIBRATION;
-static enum states state = CALIBRATION;
-// The threshold to be set; above it, the motor will activate 
-unsigned threshold;
+static states state = CALIBRATION;
 
 enum Mode {
   full,
@@ -58,8 +56,6 @@ enum Mode {
   grab,
   any
 };
-
-Mode mode;
 
 /* Modes
  * Full: Go between open hand and fist or between the secondary positions; change both motor positions
@@ -71,12 +67,14 @@ Mode mode;
 
 // #define the location of the new stuff, and probably change the old stuff
 
+Mode mode;
 Servo ti_servo; // controls thumb and index.
 Servo mrp_servo; // controls middle, ring, pinky fingers.
 int ti_pos = OPEN;// position of ti_servo.
 int mrp_pos = OPEN;//position of mrp_servo.
-short flex_count = 0;
 int volt_reg = 0; //input to display battery level
+// The threshold to be set; above it, the motor will activate 
+unsigned threshold;
 
 // I just extracted this to write the colors of the LED
 inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
@@ -172,7 +170,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  Serial.begin(9600);
+  //Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
@@ -189,7 +187,7 @@ void setup() {
 
 // Invert current servo position; in future iterations, may opt for a function that instead simply dictates desired positions
 void invertServoPos(int &pos, Servo &servo, int mos){
-  // NOTE: It would be sleeker to use pos = pos + 180 % 360, but it takes more cycles
+  // NOTE: It would be sleeker to use pos = (pos + 180) % 360, but it takes more cycles
   // If pos is open, close it and write the servos to do such
   if (pos == OPEN){
     digitalWrite(mos,HIGH);    
@@ -283,9 +281,6 @@ void loop() {
   
   // Make purple while in use/above threshold
   writeColors(HIGH, LOW, HIGH);
-
-  //Toggle Servo Logic if flexed for at least PULSEWIDTH  
-  //Keep Signal to Actuation Delay around 1 second.
 
   // Check if mode has changed;
   updateMode();
