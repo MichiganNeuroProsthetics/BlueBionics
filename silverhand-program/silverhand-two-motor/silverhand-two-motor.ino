@@ -5,6 +5,12 @@
 #define MOSFET_PIN_MRP 10 // 2nd MOFSET pin; middle finger, ring finger, pinky
 #define MYO_PIN A2 //Pin for the sensor
 #define MODE_POT_PIN A7 // Potentiometer for mode control
+//Pins for the 4 LED components
+#define LED_PIN_R 2 // Red
+#define LED_PIN_G 4 // Green
+#define LED_PIN_B 3 // Blue
+#define LED_IN A3   // Battery voltage signal
+
 #define OPEN 0 // 0 degree rotation for open
 #define CLOSE 180 // 180 degree rotation for close
 #define PULSEWIDTH 50 //in ms
@@ -19,18 +25,12 @@ int instruction_group = 0; // current imported instruction group
 #define COM_OFFSET 0x11 // convert com input to Mode type
 
 // Parameters to fine tune
-// Number of reads to take in order to smooth out noise
+// Number of reads to take in order to smooth out noise; it is recommended to take a power of 2 for computational efficiency
 #define SMOOTH_READS 8
 // Multiplier for threshold so that the threshold is attainable. e.g. threshold = min(flex_max * 0.65,  moving_max)
 #define THRESH_MULTIPLIER 0.65
 // What the threshold for being allowed to flex is again as a proportion of the regular threshold
 #define RELAX_THRESH_MULTIPLIER 0.9
-
-//Pins for the 4 LED components
-#define LED_PIN_R 2 // Red
-#define LED_PIN_G 4 // Green
-#define LED_PIN_B 3 // Blue
-#define LED_IN A3   // LED input
 
 //The thresholds for the various LED colors - must be above each to show each respective color
 #define RED_THRESH 675
@@ -49,11 +49,9 @@ enum states {
 #define DELAY_BLINK 500
 // Simulated delay for the servo motors to activate
 #define DELAY_SERVO 250
+
 // Set whether we're using calibration mode or normal use, where the threshold is predefined
-//static bool state = CALIBRATION;
-static enum states state = CALIBRATION;
-// The threshold to be set; above it, the motor will activate 
-unsigned threshold;
+static states state = CALIBRATION;
 
 enum Mode {
   full,
@@ -62,8 +60,6 @@ enum Mode {
   grab,
   any
 };
-
-Mode mode;
 
 /* Modes
  * Full: Go between open hand and fist or between the secondary positions; change both motor positions
@@ -75,12 +71,14 @@ Mode mode;
 
 // #define the location of the new stuff, and probably change the old stuff
 
+Mode mode;
 Servo ti_servo; // controls thumb and index.
 Servo mrp_servo; // controls middle, ring, pinky fingers.
 int ti_pos = OPEN;// position of ti_servo.
 int mrp_pos = OPEN;//position of mrp_servo.
-short flex_count = 0;
 int volt_reg = 0; //input to display battery level
+// The threshold to be set; above it, the motor will activate 
+unsigned threshold;
 
 // I just extracted this to write the colors of the LED
 inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
@@ -299,7 +297,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  Serial.begin(9600);
+  //Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
@@ -317,9 +315,9 @@ void setup() {
   setupVoiceCommands();
 }
 
-// Invert current servo position
-void servoLogic(int &pos, Servo &servo, int mos){
-  // NOTE: It would be sleeker to use pos = pos % 360, but it takes more cycles
+// Invert current servo position; in future iterations, may opt for a function that instead simply dictates desired positions
+void invertServoPos(int &pos, Servo &servo, int mos){
+  // NOTE: It would be sleeker to use pos = (pos + 180) % 360, but it takes more cycles
   // If pos is open, close it and write the servos to do such
   if (pos == OPEN){
     digitalWrite(mos,HIGH);    
@@ -342,43 +340,38 @@ void servoLogic(int &pos, Servo &servo, int mos){
   }
 }
 
+// Change position of motors based on which mode is currently selected
 void updateMotors () {
   // Mode will be updated via voice control
-  
-  /*if (mode == full) {
-    servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI); //this line is duplicated in TI
-    servoLogic(mrp_pos, mrp_servo, MOSFET_PIN_MRP); // this line is duplicated in MRP
-  }*/
-   // if changing thumb and index finger position
-  if (mode == ti || mode == full){
-    servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI);
-  }
-  // if changing middle finger, ring finger, and pinky position
-  if (mode ==  mrp || mode == full) {
-    servoLogic(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
-  }
-
-  // TODO: Combine the 3 if statements below akin to how you will do for the 3 above
-  // if grabbing
-  else if (mode == grab) {
-    if (ti_pos == OPEN && mrp_pos == OPEN){
-      servoLogic(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
-    }
-    else if (ti_pos != mrp_pos){
-      servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI);
-    }
-    else if (ti_pos == CLOSE && mrp_pos == CLOSE){
-      servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI);
-      servoLogic(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
-    }
-  }
-  //if opening and closing hand, exclusively
-  else if (mode == any && ti_pos == mrp_pos) {
-    servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI);
-    servoLogic(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
-  } else if (mode == any) { // just in case
-    // By default, just change the position of the thumb and index finger
-    servoLogic(ti_pos, ti_servo, MOSFET_PIN_TI);
+  switch(mode) {
+    case ti:
+      invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
+      break;
+    case mrp:
+      invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      break;
+    case full:
+      invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
+      invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      break;
+    case grab:
+      if (ti_pos == OPEN && mrp_pos == OPEN){
+        invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      }
+      else if (ti_pos != mrp_pos){
+        invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
+      }
+      else if (ti_pos == CLOSE && mrp_pos == CLOSE){
+        invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
+        invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      }
+      break;
+    case any:
+      invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
+      if (ti_pos == mrp_pos) {
+        invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      }
+      break;
   }
   
   delay(SYSTEMDELAY-PULSEWIDTH-TRAVELDELAY);
@@ -423,14 +416,10 @@ void loop() {
   // Make purple while in use/above threshold
   writeColors(HIGH, LOW, HIGH);
 
-  //Toggle Servo Logic if flexed for at least PULSEWIDTH  
-  //Keep Signal to Actuation Delay around 1 second.
-
   // Check if mode has changed;
   // updateMode();
   
   // If the smooth read is above the threshold, it's a flex
-  // TODO: Add any necessary parameters
   updateMotors();
   
   //Wait for PULSEWIDTH time
