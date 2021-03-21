@@ -14,6 +14,10 @@
 #define DEFAULT_RELAXTHRESH 275 // must be below 275 to be able to read another flex
 #define POT_MAX 504 // the maximum value for the potentiometer
 
+// variables for voice module
+int instruction_group = 0; // current imported instruction group
+#define COM_OFFSET 0x11 // convert com input to Mode type
+
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise
 #define SMOOTH_READS 8
@@ -146,6 +150,129 @@ void calibrateSimple() {
   // Serial.println("Calibratation Ended");
 }
 
+// switch to verbose mode - string output responses
+void setVerboseOutput() {
+  Serial.write(0xAA);
+  Serial.write(0x36);
+}
+
+// switch to compact mode - byte output responses
+void setCompactOutput() {
+  Serial.write(0xAA);
+  Serial.write(0x37);
+}
+
+// serial connection required
+void recordGroupInstructions(int groupNum) {
+  Serial.println("A quiet environment is recommended for recording instructions");
+  switch (groupNum) {
+    case 1:
+    // begin sending commands for group 1: 5 commands to send
+      Serial.write(0xAA);
+      Serial.write(0x11);
+    case 2:
+    // begin sending commands for group 2: 5 commands to send
+      Serial.write(0xAA);
+      Serial.write(0x12);
+  }
+  return;
+}
+
+// serial connection required
+void selectInstructionGroup(int groupNum) {
+  switch (groupNum) {
+    case 1:
+    // import group 1
+      Serial.write(0xAA);
+      Serial.write(0x21);
+    case 2:
+    // import group 2
+      Serial.write(0xAA);
+      Serial.write(0x22);
+  }
+  instruction_group = groupNum;
+}
+
+void setupVoiceCommands() {
+  if (Serial.available()){
+    startupBlink();
+    writeColors(LOW, LOW, HIGH);
+    
+    /*
+    // delete instructions of group 1
+    Serial.write(0xAA);
+    Serial.write(0x01);
+    // delete instructions of group 2
+    Serial.write(0xAA);
+    Serial.write(0x02);
+    */
+
+    // check if group 1 and 2 already have recorded instructions
+    setCompactOutput();
+    Serial.write(0xAA);
+    Serial.write(0x24);
+    byte com = Serial.read();
+    
+    setVerboseOutput();
+    Serial.write(0xAA);
+    Serial.write(0x24);    
+    switch (com) {
+      case 0x00:
+      // send recordings for groups 1 and 2
+        recordGroupInstructions(1);
+        recordGroupInstructions(2);
+        selectInstructionGroup(1);
+      case 0x01:
+      // group 1 is recorded but 2 is not
+        recordGroupInstructions(2);  
+        selectInstructionGroup(1);      
+      case 0x02:
+      // group 2 is recorded but 1 is not
+        recordGroupInstructions(1);
+        selectInstructionGroup(1);
+    }
+  }
+  return;
+}
+
+// serial connection required
+void readVoice() {
+  byte com = Serial.read();
+  
+  setVerboseOutput();
+  Serial.write(0xAA);
+  Serial.write(0x24);
+  com = Serial.read();
+  
+  if (instruction_group == 1) {
+    if (com >= 0x11 && com <= 0x14) {
+      mode = Mode(com - COM_OFFSET);
+    }
+    else if (com == 0x15) {
+      selectInstructionGroup(2);
+    }
+  }
+  else if (instruction_group == 2) {
+    switch (com) {
+      case 0x11:
+        recordGroupInstructions(1);
+      case 0x12:
+        recordGroupInstructions(2);
+      case 0x13:
+        // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
+        if (state == CALIBRATION) {
+          calibrateSimple();
+        } else {
+          threshold = DEFAULT_THRESH;
+        }
+      case 0x14:
+        // available for assignment
+      case 0x15:
+        selectInstructionGroup(1);
+    }
+  }
+}
+
 void setup() {
   //Set up servo
   ti_servo.attach(TI_SERVO_PIN);
@@ -185,6 +312,9 @@ void setup() {
   } else {
     threshold = DEFAULT_THRESH;
   }
+
+  // Setup instructions for voice commands
+  setupVoiceCommands();
 }
 
 // Invert current servo position
@@ -281,6 +411,10 @@ void loop() {
   
   //Wait for muscle signal
   while (smoothRead() < threshold) {
+    if (Serial.available()) {
+      // listen for voice instructions
+      readVoice();
+    }
     //DEBUG
     //Serial.println(analogRead(MYO_PIN));
     // return; // check how long writing to LEDs is
@@ -293,7 +427,7 @@ void loop() {
   //Keep Signal to Actuation Delay around 1 second.
 
   // Check if mode has changed;
-  updateMode();
+  // updateMode();
   
   // If the smooth read is above the threshold, it's a flex
   // TODO: Add any necessary parameters
