@@ -7,9 +7,9 @@
 #define MODE_POT_PIN A7 // Potentiometer for mode control
 //Pins for the 4 LED components
 #define LED_PIN_R 2 // Red
-#define LED_PIN_G 4 // Green
-#define LED_PIN_B 3 // Blue
-#define LED_IN A3   // Battery voltage signal
+#define LED_PIN_G 3 // Green
+#define LED_PIN_B 4 // Blue
+#define LED_IN A1   // Battery voltage signal
 
 #define OPEN 0 // 0 degree rotation for open
 #define CLOSE 180 // 180 degree rotation for close
