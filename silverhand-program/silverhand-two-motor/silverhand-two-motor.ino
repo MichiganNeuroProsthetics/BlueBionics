@@ -7,9 +7,9 @@
 #define MODE_POT_PIN A7 // Potentiometer for mode control
 //Pins for the 4 LED components
 #define LED_PIN_R 2 // Red
-#define LED_PIN_G 4 // Green
-#define LED_PIN_B 3 // Blue
-#define LED_IN A3   // Battery voltage signal
+#define LED_PIN_G 3 // Green
+#define LED_PIN_B 4 // Blue
+#define LED_IN A1   // Battery voltage signal
 
 #define OPEN 0 // 0 degree rotation for open
 #define CLOSE 180 // 180 degree rotation for close
@@ -192,7 +192,6 @@ void selectInstructionGroup(int groupNum) {
 }
 
 void setupVoiceCommands() {
-//  if (Serial.available()){
     startupBlink();
     writeColors(LOW, LOW, HIGH);
     
@@ -229,7 +228,7 @@ void setupVoiceCommands() {
         recordGroupInstructions(1);
         selectInstructionGroup(1);
     }
-//  }
+  setCompactOutput();
   return;
 }
 
@@ -237,36 +236,55 @@ void setupVoiceCommands() {
 void readVoice() {
   
   setVerboseOutput();
-  Serial.write(0xAA);
-  Serial.write(0x24);
   byte com = Serial.read();
+
+  // check for basic communication
+  if (com >= 0x11 && com <= 0x15) {
+      writeColors(HIGH, HIGH, HIGH);
+  }
   
   if (instruction_group == 1) {
-    if (com >= 0x11 && com <= 0x14) {
-      mode = Mode(com - COM_OFFSET);
+//    if (com  >= 0x11 && com <= 0x14) {
+//      mode = Mode(com - COM_OFFSET);
+//    }
+    if (com == 0x11) {
+      writeColors(HIGH,LOW,LOW);
     }
+    else if (com >= 0x12 && com <= 0x14) {
+      writeColors(LOW,LOW,HIGH);
+      }
     else if (com == 0x15) {
       selectInstructionGroup(2);
     }
   }
   else if (instruction_group == 2) {
-    switch (com) {
-      case 0x11:
-        recordGroupInstructions(1);
-      case 0x12:
-        recordGroupInstructions(2);
-      case 0x13:
-        // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
-        if (state == CALIBRATION) {
-          calibrateSimple();
-        } else {
-          threshold = DEFAULT_THRESH;
-        }
-      case 0x14:
-        // available for assignment
-      case 0x15:
-        selectInstructionGroup(1);
+    if (com == 0x11) {
+      writeColors(HIGH,HIGH,HIGH);
     }
+    else if (com >= 0x12 && com <= 0x14) {
+      writeColors(LOW,LOW,LOW);
+     
+    }
+    else if (com == 0x15) {
+      selectInstructionGroup(1);
+    }
+//    switch (com) {
+//      case 0x11:
+//        recordGroupInstructions(1);
+//      case 0x12:
+//        recordGroupInstructions(2);
+//      case 0x13:
+//        // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
+//        if (state == CALIBRATION) {
+//          calibrateSimple();
+//        } else {
+//          threshold = DEFAULT_THRESH;
+//        }
+//      case 0x14:
+//        // available for assignment
+//      case 0x15:
+//        selectInstructionGroup(1);
+//    }
   }
 }
 
@@ -296,7 +314,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  //Serial.begin(9600);
+  Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
