@@ -192,7 +192,7 @@ void selectInstructionGroup(int groupNum) {
 }
 
 void setupVoiceCommands() {
-  if (Serial.available()){
+//  if (Serial.available()){
     startupBlink();
     writeColors(LOW, LOW, HIGH);
     
@@ -229,18 +229,17 @@ void setupVoiceCommands() {
         recordGroupInstructions(1);
         selectInstructionGroup(1);
     }
-  }
+//  }
   return;
 }
 
 // serial connection required
 void readVoice() {
-  byte com = Serial.read();
   
   setVerboseOutput();
   Serial.write(0xAA);
   Serial.write(0x24);
-  com = Serial.read();
+  byte com = Serial.read();
   
   if (instruction_group == 1) {
     if (com >= 0x11 && com <= 0x14) {
