@@ -24,6 +24,8 @@
 int instruction_group = 0; // current imported instruction group
 #define COM_OFFSET 0x11 // convert com input to Mode type
 
+//#define COM_INSTR_
+
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise; it is recommended to take a power of 2 for computational efficiency
 #define SMOOTH_READS 8
@@ -101,6 +103,19 @@ void startupBlink() {
   }
 }
 
+void rgbBlink(uint8_t red, uint8_t green, uint8_t blue) {
+  for (uint8_t i = 0; i < 3; ++i) {
+    //Serial.print("Blink");
+    //Serial.println(i+1);
+    delay(DELAY_BLINK/2);
+    // Flash blue
+    writeColors(red, green, blue);
+    delay(DELAY_BLINK/2);
+    // Flash off
+    writeColors(LOW, LOW, LOW);
+  }
+}
+
 unsigned smoothRead () {
   unsigned sum = 0;
   for (int i = 0; i < SMOOTH_READS; i++) {
@@ -162,7 +177,7 @@ void setCompactOutput() {
 
 // serial connection required
 void recordGroupInstructions(int groupNum) {
-  Serial.println("A quiet environment is recommended for recording instructions");
+//  Serial.println("A quiet environment is recommended for recording instructions");
   switch (groupNum) {
     case 1:
     // begin sending commands for group 1: 5 commands to send
@@ -193,7 +208,7 @@ void selectInstructionGroup(int groupNum) {
 
 void setupVoiceCommands() {
     startupBlink();
-    writeColors(LOW, LOW, HIGH);
+    delay(5000);
     
     /*
     // delete instructions of group 1
@@ -207,85 +222,121 @@ void setupVoiceCommands() {
     // check if group 1 and 2 already have recorded instructions
     setCompactOutput();
     Serial.write(0xAA);
+    delay(1000);
+    // Query if groups set
     Serial.write(0x24);
+    while (!Serial.available()) {}
     byte com = Serial.read();
     
-    setVerboseOutput();
-    Serial.write(0xAA);
-    Serial.write(0x24);    
     switch (com) {
       case 0x00:
-      // send recordings for groups 1 and 2
-        recordGroupInstructions(1);
-        recordGroupInstructions(2);
-        selectInstructionGroup(1);
+      // groups 1 and 2 are not recorded
+        // Blink green
+        rgbBlink(LOW, HIGH, LOW);
+        //recordGroupInstructions(1);
+        //recordGroupInstructions(2);
+        //selectInstructionGroup(1);
       case 0x01:
-      // group 1 is recorded but 2 is not
-        recordGroupInstructions(2);  
-        selectInstructionGroup(1);      
+      // group 1 is recorded but not group 2
+        // Aqua
+        writeColors(LOW, HIGH, HIGH);
+        delay(1000);
+        //recordGroupInstructions(2);  
+        //selectInstructionGroup(1);      
       case 0x02:
-      // group 2 is recorded but 1 is not
-        recordGroupInstructions(1);
-        selectInstructionGroup(1);
+      // group 2 is recorded but not group 1
+        // Blink purple
+        rgbBlink(HIGH, LOW, HIGH);
+        //delay(1000);
+        //recordGroupInstructions(1);
+        //selectInstructionGroup(1);
+      case 0x03:
+      // groups 1 and 2 already recorded
+        // Blink white
+        rgbBlink(HIGH, HIGH, HIGH);
+      default:
+        // Blink red
+        rgbBlink(HIGH, LOW, LOW);
     }
-  setCompactOutput();
+  selectInstructionGroup(1);
   return;
 }
 
 // serial connection required
 void readVoice() {
   
-  setVerboseOutput();
   byte com = Serial.read();
 
-  // check for basic communication
-  if (com >= 0x11 && com <= 0x15) {
-      writeColors(HIGH, HIGH, HIGH);
-  }
-  
+  ////////////////Begin Debugging Code////////////////
   if (instruction_group == 1) {
-//    if (com  >= 0x11 && com <= 0x14) {
-//      mode = Mode(com - COM_OFFSET);
-//    }
     if (com == 0x11) {
+      // Red
       writeColors(HIGH,LOW,LOW);
     }
     else if (com >= 0x12 && com <= 0x14) {
+      // Blue
       writeColors(LOW,LOW,HIGH);
       }
     else if (com == 0x15) {
+      // Blink aqua
+      rgbBlink(LOW,HIGH,HIGH);
       selectInstructionGroup(2);
     }
   }
   else if (instruction_group == 2) {
     if (com == 0x11) {
+      // White
       writeColors(HIGH,HIGH,HIGH);
     }
     else if (com >= 0x12 && com <= 0x14) {
-      writeColors(LOW,LOW,LOW);
-     
+      // Yellow
+      writeColors(HIGH,HIGH,LOW);
     }
     else if (com == 0x15) {
+      // Blink aqua and stay aqua when done
+      rgbBlink(LOW,HIGH,HIGH);
+      writeColors(LOW,HIGH,HIGH);
       selectInstructionGroup(1);
     }
-//    switch (com) {
-//      case 0x11:
-//        recordGroupInstructions(1);
-//      case 0x12:
-//        recordGroupInstructions(2);
-//      case 0x13:
-//        // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
-//        if (state == CALIBRATION) {
-//          calibrateSimple();
-//        } else {
-//          threshold = DEFAULT_THRESH;
-//        }
-//      case 0x14:
-//        // available for assignment
-//      case 0x15:
-//        selectInstructionGroup(1);
-//    }
   }
+  ////////////////End Debugging Code//////////////////
+
+// check for basic communication
+//  if (com >= 0x11 && com <= 0x15) {
+//    // White
+//    writeColors(HIGH, HIGH, HIGH);
+//  }
+
+  ////////////////Start Functionality Code////////////
+  /*
+  if (instruction_group == 1) {
+    if (com  >= 0x11 && com <= 0x14) {
+      mode = Mode(com - COM_OFFSET);
+    }
+    else if (com == 0x15) {
+      selectInstructionGroup(2);
+    }
+  }
+  else if (instruction_group == 2) {
+    switch (com) {
+      case 0x11:
+        recordGroupInstructions(1);
+      case 0x12:
+        recordGroupInstructions(2);
+      case 0x13:
+        // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
+        if (state == CALIBRATION) {
+          calibrateSimple();
+        } else {
+          threshold = DEFAULT_THRESH;
+        }
+      case 0x14:
+        // available for assignment
+      case 0x15:
+        selectInstructionGroup(1);
+    }
+  }*/
+  ////////////////End Functionality Code//////////////
 }
 
 void setup() {
