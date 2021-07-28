@@ -6,7 +6,7 @@
 #define LED_PIN_G 3 //Green
 #define LED_PIN_B 4 //Blue
 
-#define BATT_IN A1 //Battery level
+#define BATT_PIN A1 //Battery level
 #define THERMAL_PIN A7 //Prevent overheat
 #define FLEX_PIN A2 //Pin for the sensor
 
@@ -24,7 +24,11 @@
 #define YELLOW_THRESH 757
 #define GREEN_THRESH 859
 
-#define DELAY_BLINK 500 //in ms //Delay between the blinking light, in milliseconds
+#define OVERHEAT_THRESH 403 // THEORETICAL. Replace with Kade's experimental measurements later
+#define OVERCOOL_THRESH 787 // THEORETICAL. Replace with Kade's experimental measurements later
+
+#define DELAY_BLINK_SLOW 500 //in ms
+#define DELAY_BLINK_FAST 200 //in ms
 
 #define ANALOG_MIN 0 //minimum reading of 8-bit analog pins
 #define ANALOG_MAX 1023 //maximum reading of 8-bit analog pins
@@ -61,7 +65,7 @@ enum Mode {
   ti,
   mrp,
   grab,
-  any
+  next
 };
 
 Mode mode;
@@ -71,7 +75,7 @@ Mode mode;
    TI: Pinching (update thumb and index finger)
    MRP: Change middle finger, ring finger, and pinky position
    Grab: Grab cycle - open hand -> pointing -> fist -> open hand -> ...
-   Any: *YET TO BE IMPLEMENTED*
+   Next: Cycles to the next set of voice commands
 */
 
 class VoiceRec
@@ -88,9 +92,11 @@ class VoiceRec
     int available();
     byte read();
     byte waitForResponse();
-    String query();
+    byte query();
+    String mapQueryResponseToString(byte response);
     void record(int groupNum, bool debug = false);
     void enterListenMode(int groupNum);
+    uint8_t currentSet;
 };
 
 Servo ti_servo; //controls thumb and index.
@@ -115,15 +121,13 @@ inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
   digitalWrite(LED_PIN_B, blue);
 }
 
-//Blink blue LED 3 times, leaving it on
-void startupBlink() {
-  for (uint8_t i = 0; i < 3; ++i) {
-    //Flash blue
-    writeColors(LOW, LOW, HIGH); //blue
-    delay(DELAY_BLINK);
-    //Flash off
-    writeColors(LOW, LOW, LOW);
-    delay(DELAY_BLINK);
+//Used to indicate various states of the system. Used the predefined values for interval
+void blinkNTimes(uint8_t red, uint8_t green, uint8_t blue, unsigned N, unsigned interval) {
+  for (uint8_t i = 0; i < N; ++i) {
+    writeColors(red, green, blue);
+    delay(interval);
+    writeColors(red, green, blue);
+    delay(interval);
   }
 }
 
@@ -137,19 +141,14 @@ void checkBattery(unsigned batt_level) {
   if (batt_level < RED_THRESH) {
     uint8_t cycles_below_min = 0;
     for (uint8_t i = 0; i < 8; i++) {
-      cycles_below_min += (analogRead(BATT_IN) < RED_THRESH);
+      cycles_below_min += (analogRead(BATT_PIN) < RED_THRESH);
     }
     //If not just noise and actually have low battery, turn off access to servos
     if (cycles_below_min == 7) {
       //Turn off access to motors
       digitalWrite(TI_MOSFET_PIN, LOW);
       digitalWrite(MRP_MOSFET_PIN, LOW);
-      while (true) { //Blink red
-        delay(DELAY_BLINK);
-        writeColors(HIGH, LOW, LOW);
-        delay(DELAY_BLINK);
-        writeColors(LOW, LOW, LOW);
-      }
+      writeColors(HIGH, LOW, LOW);
     }
   }
   else if (batt_level < YELLOW_THRESH) {
@@ -161,7 +160,7 @@ void checkBattery(unsigned batt_level) {
   else {
     uint8_t cycles_above_max = 0;
     for (uint8_t i = 0; i < 8; i++) {
-      cycles_above_max += (analogRead(BATT_IN) < RED_THRESH);
+      cycles_above_max += (analogRead(BATT_PIN) < RED_THRESH);
     }
     //If not just noise and actually supercharged, turn off access to servos
     if (cycles_above_max == 7) {
@@ -169,16 +168,59 @@ void checkBattery(unsigned batt_level) {
       digitalWrite(TI_MOSFET_PIN, LOW);
       digitalWrite(MRP_MOSFET_PIN, LOW);
       while (true) { //Blink green
-        delay(DELAY_BLINK);
         writeColors(LOW, HIGH, LOW);
-        delay(DELAY_BLINK);
+        delay(DELAY_BLINK_FAST);
         writeColors(LOW, LOW, LOW);
+        delay(DELAY_BLINK_FAST);
       }
     }
   }
 }
 
 //END BATTERY REGULATION FUNCTIONS
+//BEGIN TEMPERATURE REGULATING FUNCTIONS
+
+//Checks temperature to make sure system is not overheating nor overcooled
+void checkTemp(unsigned thermal_reading) {
+  //thermal reading decreases as temperature rises
+  if (thermal_reading < OVERHEAT_THRESH) {
+    uint8_t cycles_overheat = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      cycles_overheat += (analogRead(THERMAL_PIN) < OVERHEAT_THRESH);
+    }
+    //If not just noise and actually supercharged, turn off access to servos
+    if (cycles_overheat == 7) {
+      //Turn off access to motors
+      digitalWrite(TI_MOSFET_PIN, LOW);
+      digitalWrite(MRP_MOSFET_PIN, LOW);
+      while (true) { //Blink red
+        writeColors(HIGH, LOW, LOW);
+        delay(DELAY_BLINK_FAST);
+        writeColors(LOW, LOW, LOW);
+        delay(DELAY_BLINK_FAST);
+      }
+    }
+  } else if (thermal_reading > OVERCOOL_THRESH) {
+    uint8_t cycles_overcool = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      cycles_overcool += (analogRead(THERMAL_PIN) > OVERCOOL_THRESH);
+    }
+    //If not just noise and actually supercharged, turn off access to servos
+    if (cycles_overcool == 7) {
+      //Turn off access to motors
+      digitalWrite(TI_MOSFET_PIN, LOW);
+      digitalWrite(MRP_MOSFET_PIN, LOW);
+      while (true) { //Blink blue
+        writeColors(LOW, LOW, HIGH);
+        delay(DELAY_BLINK_FAST);
+        writeColors(LOW, LOW, LOW);
+        delay(DELAY_BLINK_FAST);
+      }
+    }
+  }
+}
+
+//END TEMPERATURE REGULATING FUNCTINOS
 //BEGIN SENSING/CALIBRATION FUNCTIONS
 
 //averages SMOOTH_READS number of samples to reduce the effects of noise
@@ -194,8 +236,8 @@ unsigned smoothAnalogRead(unsigned sensor_pin) {
 void calibrateSimple() {
   //Temporary tracker variables
   unsigned calibrate_signal;
-  //Blink 3 times to indicate that the user must begin flexing after the blinks
-  startupBlink();
+  //Blink blue 3 times to indicate that the user must begin flexing after the blinks
+  blinkNTimes(LOW, LOW, HIGH, 3, DELAY_BLINK_SLOW);
 
   //Remain blue while reading
   writeColors(LOW, LOW, HIGH);
@@ -225,6 +267,24 @@ void openHand() {
   ti_servo.write(OPEN);
   mrp_servo.write(OPEN);
   delay(MIN_TRAVEL_TIME);
+  digitalWrite(TI_MOSFET_PIN, LOW);
+  digitalWrite(MRP_MOSFET_PIN, LOW);
+}
+
+void squeezeFingersNTimes(unsigned N) {
+  digitalWrite(TI_MOSFET_PIN, HIGH);
+  digitalWrite(MRP_MOSFET_PIN, HIGH);
+  ti_servo.write(OPEN);
+  mrp_servo.write(OPEN);
+  delay(MIN_TRAVEL_TIME);
+  for (unsigned i = 0; i < N; ++i) {
+    ti_servo.write(30);
+    mrp_servo.write(30);
+    delay(MIN_TRAVEL_TIME);
+    ti_servo.write(OPEN);
+    mrp_servo.write(OPEN);
+    delay(MIN_TRAVEL_TIME);
+  }
   digitalWrite(TI_MOSFET_PIN, LOW);
   digitalWrite(MRP_MOSFET_PIN, LOW);
 }
@@ -326,7 +386,7 @@ void moveFingers(unsigned flex_signal) {
         timedTwoServoWrite(mrp_servo, MRP_MOSFET_PIN, mrp_pos, ti_servo, TI_MOSFET_PIN, ti_pos, mapFlexToDuration(flex_signal));
       }
       break;
-    case any:
+    case next:
       break;
   }
 }
@@ -354,16 +414,43 @@ void checkVoiceUpdates() {
     byte response = voiceRec.read();
     if (response >= 0x11 && response <= 0x14) {
       updateMode(response);
-      for (uint8_t i = 0; i < response - 0x10; ++i) { //blink yellow to indicate current mode. 1 blink = mode 1, 2 blinks = mode 2 etc.
-        writeColors(LOW, LOW, LOW);
-        delay(DELAY_BLINK);
-        writeColors(HIGH, HIGH, LOW);
-        delay(DELAY_BLINK);
-      }
       writeColors(LOW, LOW, LOW);
-      delay(DELAY_BLINK);
-      writeColors(LOW, HIGH, LOW);
+      delay(DELAY_BLINK_FAST);
+      for (uint8_t i = 0; i < response - 0x10; ++i) { //blink yellow to indicate current mode. 1 blink = mode 1, 2 blinks = mode 2 etc.
+        writeColors(HIGH, LOW, HIGH);
+        delay(DELAY_BLINK_FAST);
+        writeColors(LOW, LOW, LOW);
+        delay(DELAY_BLINK_FAST);
+      }
+      writeColors(LOW, HIGH, LOW); //return to green to continue operation
+    } else if (response == 0x15) {
+      if (voiceRec.currentSet < 3) {
+        ++voiceRec.currentSet;
+      } else {
+        voiceRec.currentSet = 1;
+      }
+      blinkNTimes(HIGH, HIGH, HIGH, voiceRec.currentSet, DELAY_BLINK_FAST);
+      voiceRec.enterListenMode(voiceRec.currentSet);
     }
+  }
+}
+
+//check if there is a need to record voiceCommands. If not, prompt user to record all 3 sets.
+void checkForVoiceCommands() {
+  byte reponse = voiceRec.query();
+  if (reponse = byte(0x00)) {
+    // turn off LED beforehand for clarity of number of blinks
+    writeColors(LOW, LOW, LOW);
+    delay(DELAY_BLINK_SLOW);
+    // record set 1
+    blinkNTimes(LOW, HIGH, HIGH, 1, DELAY_BLINK_SLOW);
+    voiceRec.record(1);
+    // record set 2
+    blinkNTimes(LOW, HIGH, HIGH, 1, DELAY_BLINK_SLOW);
+    voiceRec.record(1);
+    // record set 3
+    blinkNTimes(LOW, HIGH, HIGH, 1, DELAY_BLINK_SLOW);
+    voiceRec.record(1);
   }
 }
 
@@ -402,13 +489,16 @@ byte VoiceRec::waitForResponse() { //reads signal from voice-rec module while pa
   }
 }
 
-String VoiceRec::query() { //query and decode recording status
+byte VoiceRec::query() { //query recording status
   writeToVoiceRec((byte)0x00); //set voice-rec module to waiting mode
   writeToVoiceRec(0x37); //set voice-rec module to compact (hex) mode
   clearBuffer();
   writeToVoiceRec(0x24); //query voice-rec
 
-  byte response = voiceRecSerial.read();
+  return voiceRecSerial.read();
+}
+
+String mapQueryResponseToString(byte response) { //decode recording status
   switch (response) {
     case (byte)0x00:
       return "No group is recorded";
@@ -453,10 +543,56 @@ void VoiceRec::record(int groupNum, bool debug = false) { // self-explanatory
   bool finished = false;
   while (!finished) {
     byte response = waitForResponse();
-    if (debug) {
-      Serial.println("Debug: " + String(response));
+    switch (response) { //LED based recording interface for now.
+      case 0xcc:
+        //here for completeness. Don't need to do anything
+        break;
+      case 0xe0: //"ERROR"
+        blinkNTimes(HIGH, LOW, LOW, 2, DELAY_BLINK_SLOW);
+        break;
+      case 0x40: //"START"
+        blinkNTimes(LOW, HIGH, HIGH, 2, DELAY_BLINK_FAST);
+        break;
+      case 0x41: //"No voice"
+        blinkNTimes(HIGH, LOW, LOW, 2, DELAY_BLINK_SLOW);
+        break;
+      case 0x42: //"Again"
+        blinkNTimes(LOW, HIGH, HIGH, 2, DELAY_BLINK_FAST);
+        break;
+      case 0x43: //"Too loud"
+        blinkNTimes(HIGH, LOW, LOW, 2, DELAY_BLINK_SLOW);
+        break;
+      case 0x44: //"Different"
+        blinkNTimes(HIGH, LOW, LOW, 2, DELAY_BLINK_SLOW);
+        break;
+      case 0x45: //"Finish one"
+        blinkNTimes(LOW, HIGH, LOW, 2, DELAY_BLINK_SLOW);
+        ++count;
+        break;
+      case 0x46: //"Group 1 finished"
+        blinkNTimes(HIGH, LOW, LOW, 5, DELAY_BLINK_FAST);
+        squeezeFingersNTimes(1);
+        finished = true;
+        writeToVoiceRec(0x21); //save command set
+        break;
+      case 0x47: //"Group 2 finished"
+        blinkNTimes(HIGH, LOW, LOW, 5, DELAY_BLINK_FAST);
+        squeezeFingersNTimes(2);
+        finished = true;
+        writeToVoiceRec(0x22); //save command set
+        break;
+      case 0x48: //"Group 3 finished"
+        blinkNTimes(HIGH, LOW, LOW, 5, DELAY_BLINK_FAST);
+        squeezeFingersNTimes(3);
+        finished = true;
+        writeToVoiceRec(0x23); //save command set
+        break;
     }
-    switch (response) {
+    /* Serial monitor based recording interface. Use once arm has cutout for micro USB port.
+      if (debug) {
+      Serial.println("Debug: " + String(response));
+      }
+      switch (response) {
       case 0xcc:
         //here for completeness. Don't need to do anything
         break;
@@ -497,7 +633,8 @@ void VoiceRec::record(int groupNum, bool debug = false) { // self-explanatory
         finished = true;
         writeToVoiceRec(0x23);
         break;
-    }
+      }
+    */
     delay(250);
   }
   return;
@@ -522,13 +659,19 @@ void setup() {
 
   //Set up voice rec module
   voiceRec.begin(9600);
-  voiceRec.enterListenMode(1); //Default to command set 1
+
+  //Check if there are voice commands. If not, record all 3 sets.
+  checkForVoiceCommands();
+  
+  //Default to command set 1 on startup;
+  voiceRec.enterListenMode(1);
+  voiceRec.currentSet = 1;
 
   //Set MOSFET and LED as outputs of the Arduino
   pinMode(LED_PIN_R, OUTPUT);
   pinMode(LED_PIN_G, OUTPUT);
   pinMode(LED_PIN_B, OUTPUT);
-  pinMode(BATT_IN, INPUT);
+  pinMode(BATT_PIN, INPUT);
   pinMode(FLEX_PIN, INPUT);
   pinMode(TI_MOSFET_PIN, OUTPUT);
   pinMode(MRP_MOSFET_PIN, OUTPUT);
@@ -552,14 +695,15 @@ void setup() {
 
 //put your main code here, to run repeatedly
 void loop() {
-  checkBattery(analogRead(BATT_IN)); //check battery
+  checkBattery(analogRead(BATT_PIN)); //check battery
+  checkTemp(analogRead(THERMAL_PIN)); //check temperature
   checkVoiceUpdates(); //check for new voice commands to update mode
   unsigned flex_signal = constrain(smoothAnalogRead(FLEX_PIN), ANALOG_MIN, ANALOG_MAX); //read in flex signal
   //To avoid activating twice on the same signal, make sure it hasn't recently been active before registering another flex
   if (!recently_active && flex_signal > trigger_thresh) {
     delay(128); //Wait for flex to reach inteded position, then reread flex signal
     flex_signal = constrain(smoothAnalogRead(FLEX_PIN), ANALOG_MIN, ANALOG_MAX);
-    //Make purple while in use/above threshold
+    //Turn LED purple while in use/above threshold
     writeColors(HIGH, LOW, HIGH);
     //If the smooth read is above the threshold, trigger servos
     moveFingers(flex_signal);
