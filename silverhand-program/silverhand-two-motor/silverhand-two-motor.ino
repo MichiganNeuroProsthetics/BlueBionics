@@ -93,6 +93,7 @@ class VoiceRec
     byte read();
     byte waitForResponse();
     byte query();
+    void reset();
     String mapQueryResponseToString(byte response);
     void record(int groupNum, bool debug = false);
     void enterListenMode(int groupNum);
@@ -493,9 +494,16 @@ byte VoiceRec::query() { //query recording status
   writeToVoiceRec((byte)0x00); //set voice-rec module to waiting mode
   writeToVoiceRec(0x37); //set voice-rec module to compact (hex) mode
   clearBuffer();
-  writeToVoiceRec(0x24); //query voice-rec
+  writeToVoiceRec(0x04); //query voice-rec
 
   return voiceRecSerial.read();
+}
+
+void VoiceRec::reset() { //erase all existing voice commands
+  writeToVoiceRec((byte)0x00); //set voice-rec module to waiting mode
+  writeToVoiceRec(0x37); //set voice-rec module to compact (hex) mode
+  clearBuffer();
+  writeToVoiceRec(0x24); //erase commands
 }
 
 String mapQueryResponseToString(byte response) { //decode recording status
@@ -659,6 +667,9 @@ void setup() {
 
   //Set up voice rec module
   voiceRec.begin(9600);
+
+  //Uncomment to reset voice commmands for debugging purposes
+  //voiceRec.reset();
 
   //Check if there are voice commands. If not, record all 3 sets.
   checkForVoiceCommands();
