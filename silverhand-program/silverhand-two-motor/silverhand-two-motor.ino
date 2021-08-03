@@ -43,10 +43,8 @@
 #define POLL_TIME 3000 //in ms
 //Number of reads to take in order to smooth out noise
 #define SMOOTH_READS 8
-//Multiplier for threshold so that the threshold is attainable. e.g. myo_thresh = min(flex_max * 0.65,  moving_max)
-#define THRESH_MULTIPLIER 0.6
-//What the threshold for being allowed to flex is again as a proportion of the regular threshold
-#define RELAX_THRESH_MULTIPLIER 0.5
+//Multiplier for threshold so that the threshold is attainable. e.g. myo_thresh = min(flex_max * 0.8,  moving_max)
+#define THRESH_MULTIPLIER 0.8
 //minimum time (ms) needed for servo to move 180 degrees. Also the stated operation speed in the spec of 60deg/0.1s @ 7.4V
 #define MIN_TRAVEL_TIME 300
 //longest time (ms) to move 180 degrees. Can be changed but I think 2s is as slow as we need
@@ -106,8 +104,8 @@ VoiceRec voiceRec(VOICE_REC_TX_PIN, VOICE_REC_RX_PIN); //voice-control module ho
 
 //things to keep track of
 unsigned batt_level = 0; //input to display battery level
-unsigned trigger_thresh = 0; //The trigger threshold to be set; above it, the motors will activate
-unsigned relax_thresh = 0; //The relax threshold to be set; must drop below it before activating motors again
+unsigned trigger_thresh = 0; //The trigger threshold to be set as 80% of maximum flex signal; above it, the motors will activate
+unsigned relax_thresh = 0; //The relax threshold to be set as average of arm movement signal; must drop below it before activating motors again
 bool recently_active = false; //whether or not recently updated servos as to not yield a double flex event
 unsigned ti_pos = OPEN; //position of ti_servo.
 unsigned mrp_pos = OPEN; //position of mrp_servo.
@@ -254,9 +252,26 @@ void calibrateSimple() {
     if (calibrate_signal > signal_max) signal_max = calibrate_signal;
   }
 
-  //Set thresholds to a fraction of its maximum reading
+  //Set threshold to a fraction of its maximum reading
   trigger_thresh = signal_max * THRESH_MULTIPLIER;
-  relax_thresh = signal_max * RELAX_THRESH_MULTIPLIER;
+
+  //Turn off LED for 1 second before calibrating for arm movement noise
+  writeColors(LOW, LOW, LOW);
+  delay(1000);
+  writeColors(LOW, LOW, HIGH);
+  delay(250); //delay for average human reaction time
+
+  //Record signals for POLL_TIME in ms
+  end_time = millis() + POLL_TIME;
+  
+  //Average arm movement signal
+  unsigned signal_arm_avg = 1023 - analogRead(FLEX_PIN);
+  //Get the average value from flexing for the duration of POLL_TIME (while light is solid blue)
+  while (millis() < end_time) {
+    signal_arm_avg = (signal_arm_avg + 1023 - analogRead(FLEX_PIN))/2;
+  }
+  
+  relax_thresh = signal_arm_avg;
 }
 
 //END SENSING/CALIBRATION FUNCTIONS
