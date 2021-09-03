@@ -13,9 +13,34 @@
 #define THRESH_MULTIPLIER 0.65
 #define CALIBRATION_TIME 5000 //in ms
 
+#define LED_PIN_R 5
+#define LED_PIN_G 6
+#define LED_PIN_B 7
+
 Servo servo;
 int pos = OPEN;
 unsigned threshold = DEFAULT_THRESH;
+
+//BEGIN LED UI FUNCTIONS
+
+//I just extracted this to write the colors of the LED
+inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
+  digitalWrite(LED_PIN_R, red);
+  digitalWrite(LED_PIN_G, green);
+  digitalWrite(LED_PIN_B, blue);
+}
+
+//Used to indicate various states of the system. Used the predefined values for interval
+void blinkNTimes(uint8_t red, uint8_t green, uint8_t blue, unsigned N, unsigned interval) {
+  for (uint8_t i = 0; i < N; ++i) {
+    writeColors(red, green, blue);
+    delay(interval);
+    writeColors(LOW, LOW, LOW);
+    delay(interval);
+  }
+}
+
+//END LED UI FUNCTIONS
 
 void setup() {
   //Setup MOSFET, servo motor, and MyoWare sensor
