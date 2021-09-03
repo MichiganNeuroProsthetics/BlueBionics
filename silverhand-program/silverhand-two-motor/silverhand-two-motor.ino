@@ -125,7 +125,7 @@ void blinkNTimes(uint8_t red, uint8_t green, uint8_t blue, unsigned N, unsigned 
   for (uint8_t i = 0; i < N; ++i) {
     writeColors(red, green, blue);
     delay(interval);
-    writeColors(red, green, blue);
+    writeColors(LOW, LOW, LOW);
     delay(interval);
   }
 }
