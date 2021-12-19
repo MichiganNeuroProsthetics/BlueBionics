@@ -1,7 +1,7 @@
 #include <Servo.h>
-#define SERVO_PIN 11
-#define MOSFET_PIN 13
-#define MYO_PIN A2
+#define SERVO_PIN 9
+#define MOSFET_PIN 8
+#define MYO_PIN A0
 
 #define OPEN 0
 #define CLOSE 180
