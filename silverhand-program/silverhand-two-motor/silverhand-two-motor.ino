@@ -1,15 +1,15 @@
 #include <Servo.h>
-#define TI_SERVO_PIN 5 // Pin for servo
-#define MRP_SERVO_PIN 11 // Pin for servo
-#define MOSFET_PIN_TI 9 // 1st MOFSET pin; thumb, index finger
-#define MOSFET_PIN_MRP 10 // 2nd MOFSET pin; middle finger, ring finger, pinky
+#define TI_SERVO_PIN 11 // Pin for servo
+#define MRP_SERVO_PIN 10 // Pin for servo
+#define MOSFET_PIN_TI 12 // 1st MOFSET pin; thumb, index finger
+#define MOSFET_PIN_MRP 13 // 2nd MOFSET pin; middle finger, ring finger, pinky
 #define MYO_PIN A2 //Pin for the sensor
-#define MODE_POT_PIN A7 // Potentiometer for mode control
+#define MODE_POT_PIN A5 // Potentiometer for mode control
 //Pins for the 4 LED components
 #define LED_PIN_R 2 // Red
-#define LED_PIN_G 4 // Green
-#define LED_PIN_B 3 // Blue
-#define LED_IN A3   // Battery voltage signal
+#define LED_PIN_G 3 // Green
+#define LED_PIN_B 4 // Blue
+#define LED_IN A1   // Battery voltage signal
 
 #define OPEN 0 // 0 degree rotation for open
 #define CLOSE 180 // 180 degree rotation for close
