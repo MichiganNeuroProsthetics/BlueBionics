@@ -122,14 +122,32 @@ void calibrateSimple() {
 
   // Maximum flex signal
   unsigned flex_max = 0;
+  
   // Get the largest peak value from flexing for the duration of POLL_TIME
   while (millis() < end_time) {
-    unsigned flex_signal = analogRead(MYO_PIN);
-    if (flex_signal > flex_max) {
-      flex_max = flex_signal;
+      unsigned flex_signal = analogRead(MYO_PIN);
+      if (flex_signal > flex_max) {
+        flex_max = flex_signal;
+      }
+      // Serial.println(flex_signal);
     }
-    // Serial.println(flex_signal);
-  }
+  
+  while(flex_max < DEFAULT_THRESH){
+    writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
+    delay(5) //wait for a moment before restarting
+    startupBlink();
+    writeColors(LOW, LOW, HIGH); //light up blue again
+    //redo calibration
+    while (millis() < end_time) {
+      unsigned flex_signal = analogRead(MYO_PIN);
+      if (flex_signal > flex_max) {
+        flex_max = flex_signal;
+      }
+    }
+  } //end of calibration
+  
+  //flash green to signal successful calibration
+  writeColors(LOW, HIGH, LOW);
 
   // Set threshold to a fraction of its maximum reading
   threshold = flex_max * THRESH_MULTIPLIER;
