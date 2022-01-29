@@ -1,6 +1,6 @@
 #include <Servo.h>
-#define TI_SERVO_PIN 11 // Pin for servo
-#define MRP_SERVO_PIN 10 // Pin for servo
+#define TI_SERVO_PIN 11 // Pin for servo motors
+#define MRP_SERVO_PIN 10 // Pin for servo motors
 #define MOSFET_PIN_TI 12 // 1st MOFSET pin; thumb, index finger
 #define MOSFET_PIN_MRP 13 // 2nd MOFSET pin; middle finger, ring finger, pinky
 #define MYO_PIN A2 //Pin for the sensor
@@ -170,7 +170,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  //Serial.begin(9600);
+  Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
@@ -258,39 +258,46 @@ void loop() {
   volt_reg = analogRead(LED_IN);
   
   //DEBUG
-  //Serial.print("Volt reg: ");
-  //Serial.println(volt_reg);
-  
-  // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon; if below GREEN_THRESH, you're fine
+
+  //FLEX CONTROL SECTION
+  if(smoothRead() >= threshold){
+      // Check if mode has changed;
+      updateMode();
+      // If the smooth read is above the threshold, it's a flex
+      updateMotors();
+  }
+
+
+  // LED CONTROL SECION
+  // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon
+  // Low/Empty battery takes precendence over flex/relaxed indicators - no light for full battery
   if (volt_reg < RED_THRESH) {
     writeColors(HIGH, LOW, LOW);
   }
   else if (volt_reg < YELLOW_THRESH) {
     writeColors(HIGH, HIGH, LOW);
   }
-  else { //(volt_reg <= GREEN_THRESH)
+  else if (smoothRead() >= threshold){ //if flexing, glow green
     writeColors(LOW, HIGH, LOW);
   }
-  
-  //Wait for muscle signal
-  while (smoothRead() < threshold) {
-    //DEBUG
-    //Serial.println(analogRead(MYO_PIN));
-    // return; // check how long writing to LEDs is
+  else {
+    writeColors(HIGH, LOW, HIGH); //relaxed - be purple
   }
-  
-  // Make purple while in use/above threshold
-  writeColors(HIGH, LOW, HIGH);
 
-  // Check if mode has changed;
-  updateMode();
-  
-  // If the smooth read is above the threshold, it's a flex
-  updateMotors();
-  
-  //Wait for PULSEWIDTH time
-  delay(PULSEWIDTH);
+  if(smoothRead() >= threshold){
+    //Wait for PULSEWIDTH time
+    delay(PULSEWIDTH);
+  }
+  //Wait for muscle signal
+//  while (smoothRead() > threshold) {
+//    //DEBUG
+//    Serial.println(analogRead(MYO_PIN));
+//    writeColors(HIGH, LOW, HIGH);
+//  }
+//  Serial.println(analogRead(MYO_PIN));
+  // Make purple while in use/above threshold
+  //writeColors(HIGH, LOW, HIGH);
 
   // Wait until below relax threshold if not already
-  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
+  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {} 
 }
