@@ -74,7 +74,7 @@ int ti_pos = OPEN;// position of ti_servo.
 int mrp_pos = OPEN;//position of mrp_servo.
 int volt_reg = 0; //input to display battery level
 // The threshold to be set; above it, the motor will activate 
-unsigned threshold;
+//unsigned threshold;
 
 // I just extracted this to write the colors of the LED
 inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
@@ -127,11 +127,9 @@ void calibrateSimple() {
       if (relax_signal > relax_threshold) {
         relax_threshold = relax_signal;
       }
-  }
-  Serial.println("relax threshold: ");
-  Serial.println(relax_threshold);
-  
-  //end of relaxed calibration
+  } //end of relaxed calibration
+  //Serial.println("relax threshold: ");
+  //Serial.println(relax_threshold);
 
   // Blink yellow 3 times to indicate that the user must begin flexing after the blinks
   startupBlink(HIGH, HIGH, LOW);
@@ -150,9 +148,6 @@ void calibrateSimple() {
       }
   }
 
-  Serial.println("final ambient threshold: ");
-  Serial.println(ambient_threshold);
-
   //Record Ambient Threshold if original is incorrect
   while(ambient_threshold < 0.8*relax_threshold){
     writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
@@ -161,6 +156,8 @@ void calibrateSimple() {
     writeColors(HIGH, HIGH, LOW); //light up blue again
     end_time = millis() + POLL_TIME; //update end_time
     while (millis() < end_time) {
+      //Serial.println("current ambient threshold: ");
+      //Serial.println(ambient_threshold);
       unsigned ambient_signal = analogRead(MYO_PIN);
       if (ambient_signal > ambient_threshold) {
         ambient_threshold = ambient_signal;
@@ -168,6 +165,9 @@ void calibrateSimple() {
     }
   } //end of ambient calibration
   ambient_threshold *= 0.7;
+
+  //Serial.println("final ambient threshold: ");
+  //Serial.println(ambient_threshold);
 
   //start flex reading
   // Blink blue 3 times to indicate that the user must begin flexing after the blinks
@@ -177,9 +177,9 @@ void calibrateSimple() {
   writeColors(LOW, LOW, HIGH);
   end_time = millis() + POLL_TIME;
   while (millis() < end_time) {
-      unsigned ambient_signal = analogRead(MYO_PIN);
-      if (ambient_signal > ambient_threshold) {
-        ambient_threshold = ambient_signal;
+      unsigned flex_signal = analogRead(MYO_PIN);
+      if (flex_signal > flex_threshold) {
+        flex_threshold = flex_signal;
       }
   }
 
@@ -198,8 +198,8 @@ void calibrateSimple() {
     }
   } //end of calibration
 
-  Serial.println("final flex threshold: ");
-  Serial.println(flex_threshold);
+  //Serial.println("final flex threshold: ");
+  //Serial.println(flex_threshold);
   
   //flash green to signal successful calibration
   writeColors(LOW, HIGH, LOW);
@@ -245,8 +245,9 @@ void setup() {
   if (state == CALIBRATION) {
     calibrateSimple();
   } else {
-    threshold = DEFAULT_THRESH;
+    flex_threshold = DEFAULT_THRESH;
   }
+  state = NORMAL_USE;
 }
 
 // Invert current servo position; in future iterations, may opt for a function that instead simply dictates desired positions
@@ -320,29 +321,28 @@ void updateMode () {
 void loop() {
   // Battery signal
   volt_reg = analogRead(LED_IN);
+  //Serial.println(flex_threshold);
   
-  //DEBUG
-
   // LED CONTROL SECION
   // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon
   // Low/Empty battery takes precendence over flex/relaxed indicators - no light for full battery
   if (volt_reg < RED_THRESH) {
     writeColors(HIGH, LOW, LOW);
-    if(smoothRead() >= threshold){
+    if(smoothRead() >= flex_threshold){
       updateMode();
       updateMotors();
     }
   }
   else if (volt_reg < YELLOW_THRESH) {
     writeColors(HIGH, HIGH, LOW);
-    if(smoothRead() >= threshold){
+    if(smoothRead() >= flex_threshold){
       updateMode();
       updateMotors();
     }
   }
-  else if (smoothRead() >= threshold){ //if flexing, glow green
+  else if (smoothRead() >= flex_threshold){ //if flexing, glow green
     writeColors(LOW, HIGH, LOW);
-    if(smoothRead() >= threshold){
+    if(smoothRead() >= flex_threshold){
       updateMode();
       updateMotors();
     }
@@ -352,5 +352,5 @@ void loop() {
   }
   
   // Wait until below relax threshold if not already
-  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {} 
+  while (smoothRead() > flex_threshold * RELAX_THRESH_MULTIPLIER) {} 
 }
