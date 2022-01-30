@@ -134,7 +134,7 @@ void calibrateSimple() {
   
   while(flex_max < DEFAULT_THRESH){
     writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
-    delay(5) //wait for a moment before restarting
+    delay(5); //wait for a moment before restarting
     startupBlink();
     writeColors(LOW, LOW, HIGH); //light up blue again
     //redo calibration
