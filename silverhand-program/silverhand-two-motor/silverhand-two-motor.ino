@@ -1,6 +1,6 @@
 #include <Servo.h>
-#define TI_SERVO_PIN 11 // Pin for servo
-#define MRP_SERVO_PIN 10 // Pin for servo
+#define TI_SERVO_PIN 11 // Pin for servo motors
+#define MRP_SERVO_PIN 10 // Pin for servo motors
 #define MOSFET_PIN_TI 12 // 1st MOFSET pin; thumb, index finger
 #define MOSFET_PIN_MRP 13 // 2nd MOFSET pin; middle finger, ring finger, pinky
 #define MYO_PIN A2 //Pin for the sensor
@@ -84,20 +84,20 @@ inline void writeColors(uint8_t red, uint8_t green, uint8_t blue) {
 }
 
 // Blink LED 3 times, leaving it on
-void startupBlink() {
+void startupBlink(uint8_t red, uint8_t green, uint8_t blue) {
   for (uint8_t i = 0; i < 3; ++i) {
     //Serial.print("Blink");
     //Serial.println(i+1);
     delay(DELAY_BLINK);
     // Flash blue
-    writeColors(LOW, LOW, HIGH);
+    writeColors(red, green, blue);
     delay(DELAY_BLINK);
     // Flash off
     writeColors(LOW, LOW, LOW);
   }
 }
 
-unsigned smoothRead () {
+unsigned smoothRead() {
   unsigned sum = 0;
   for (int i = 0; i < SMOOTH_READS; i++) {
     sum += analogRead(MYO_PIN);
@@ -105,43 +105,107 @@ unsigned smoothRead () {
   return (sum / SMOOTH_READS);
 }
 
+unsigned relax_threshold = 0;
+unsigned ambient_threshold = 0;
+unsigned flex_threshold = 0;
+//unsigned threshold = 0;
 // Calibrate optimal threshold
 void calibrateSimple() {
-  //Serial.println("Beginning Calibration");
   
-  // Blink 3 times to indicate that the user must begin flexing after the blinks
-  startupBlink();
-
-  // Remain blue while reading
-  writeColors(LOW, LOW, HIGH);
+  // Blink 3 times to indicate they should relax
+  startupBlink(HIGH, LOW, HIGH); //purple
+  
+  // stay purple for relaxed reading
+  writeColors(HIGH, LOW, HIGH); //purple
 
   // Record signals for POLL_TIME in ms
   unsigned long end_time = millis() + POLL_TIME;
 
-  // Serial.println("measuring for flex");
-
-  // Maximum flex signal
-  unsigned flex_max = 0;
-  // Get the largest peak value from flexing for the duration of POLL_TIME
+  // Record Relax Threshold
   while (millis() < end_time) {
-    unsigned flex_signal = analogRead(MYO_PIN);
-    if (flex_signal > flex_max) {
-      flex_max = flex_signal;
-    }
-    // Serial.println(flex_signal);
+      unsigned relax_signal = analogRead(MYO_PIN);
+      if (relax_signal > relax_threshold) {
+        relax_threshold = relax_signal;
+      }
+  }
+  Serial.println("relax threshold: ");
+  Serial.println(relax_threshold);
+  
+  //end of relaxed calibration
+
+  // Blink yellow 3 times to indicate that the user must begin flexing after the blinks
+  startupBlink(HIGH, HIGH, LOW);
+  
+  // stay yellow for ambient reading
+  writeColors(HIGH, HIGH, LOW);
+  
+  //record Ambient Threshold first time
+  end_time = millis() + POLL_TIME;
+  while (millis() < end_time) {
+      unsigned ambient_signal = analogRead(MYO_PIN);
+      Serial.println("current ambient threshold: ");
+      Serial.println(ambient_threshold);
+      if (ambient_signal > ambient_threshold) {
+        ambient_threshold = ambient_signal;
+      }
   }
 
-  // Set threshold to a fraction of its maximum reading
-  threshold = flex_max * THRESH_MULTIPLIER;
+  Serial.println("final ambient threshold: ");
+  Serial.println(ambient_threshold);
 
-  // Turn off LED, indicating that the user need not flex anymore; not necessary, but here for uniformity
-  // writeColors(LOW, LOW, LOW);
+  //Record Ambient Threshold if original is incorrect
+  while(ambient_threshold < 0.8*relax_threshold){
+    writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
+    delay(5); //wait for a moment before restarting
+    startupBlink(HIGH, HIGH, LOW);
+    writeColors(HIGH, HIGH, LOW); //light up blue again
+    end_time = millis() + POLL_TIME; //update end_time
+    while (millis() < end_time) {
+      unsigned ambient_signal = analogRead(MYO_PIN);
+      if (ambient_signal > ambient_threshold) {
+        ambient_threshold = ambient_signal;
+      }
+    }
+  } //end of ambient calibration
+  ambient_threshold *= 0.7;
+
+  //start flex reading
+  // Blink blue 3 times to indicate that the user must begin flexing after the blinks
+  startupBlink(LOW, LOW, HIGH);
   
-  // Serial.println("done measuring");
-  // Serial.print("threshold:");
-  // Serial.println(threshold);
-  // return threshold;
-  // Serial.println("Calibratation Ended");
+  // stay blue for flex reading
+  writeColors(LOW, LOW, HIGH);
+  end_time = millis() + POLL_TIME;
+  while (millis() < end_time) {
+      unsigned ambient_signal = analogRead(MYO_PIN);
+      if (ambient_signal > ambient_threshold) {
+        ambient_threshold = ambient_signal;
+      }
+  }
+
+  //Record Flex Threshold
+  while(flex_threshold < 0.8*ambient_threshold){
+    writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
+    delay(5); //wait for a moment before restarting
+    startupBlink(LOW, LOW, HIGH);
+    writeColors(LOW, LOW, HIGH); //light up blue again
+    end_time = millis() + POLL_TIME; //update end_time
+    while (millis() < end_time) {
+      unsigned flex_signal = analogRead(MYO_PIN);
+      if (flex_signal > flex_threshold) {
+        flex_threshold = flex_signal;
+      }
+    }
+  } //end of calibration
+
+  Serial.println("final flex threshold: ");
+  Serial.println(flex_threshold);
+  
+  //flash green to signal successful calibration
+  writeColors(LOW, HIGH, LOW);
+
+  // Set threshold to a fraction of its maximum reading
+  flex_threshold *= THRESH_MULTIPLIER;
 }
 
 void setup() {
@@ -170,7 +234,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  //Serial.begin(9600);
+  Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
@@ -258,39 +322,35 @@ void loop() {
   volt_reg = analogRead(LED_IN);
   
   //DEBUG
-  //Serial.print("Volt reg: ");
-  //Serial.println(volt_reg);
-  
-  // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon; if below GREEN_THRESH, you're fine
+
+  // LED CONTROL SECION
+  // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon
+  // Low/Empty battery takes precendence over flex/relaxed indicators - no light for full battery
   if (volt_reg < RED_THRESH) {
     writeColors(HIGH, LOW, LOW);
+    if(smoothRead() >= threshold){
+      updateMode();
+      updateMotors();
+    }
   }
   else if (volt_reg < YELLOW_THRESH) {
     writeColors(HIGH, HIGH, LOW);
+    if(smoothRead() >= threshold){
+      updateMode();
+      updateMotors();
+    }
   }
-  else { //(volt_reg <= GREEN_THRESH)
+  else if (smoothRead() >= threshold){ //if flexing, glow green
     writeColors(LOW, HIGH, LOW);
+    if(smoothRead() >= threshold){
+      updateMode();
+      updateMotors();
+    }
+  }
+  else {
+    writeColors(HIGH, LOW, HIGH); //relaxed - be purple
   }
   
-  //Wait for muscle signal
-  while (smoothRead() < threshold) {
-    //DEBUG
-    //Serial.println(analogRead(MYO_PIN));
-    // return; // check how long writing to LEDs is
-  }
-  
-  // Make purple while in use/above threshold
-  writeColors(HIGH, LOW, HIGH);
-
-  // Check if mode has changed;
-  updateMode();
-  
-  // If the smooth read is above the threshold, it's a flex
-  updateMotors();
-  
-  //Wait for PULSEWIDTH time
-  delay(PULSEWIDTH);
-
   // Wait until below relax threshold if not already
-  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
+  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {} 
 }
