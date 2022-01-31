@@ -111,64 +111,6 @@ unsigned flex_threshold = 0;
 //unsigned threshold = 0;
 // Calibrate optimal threshold
 void calibrateSimple() {
-  
-  // Blink 3 times to indicate they should relax
-  startupBlink(HIGH, LOW, HIGH); //purple
-  
-  // stay purple for relaxed reading
-  writeColors(HIGH, LOW, HIGH); //purple
-
-  // Record signals for POLL_TIME in ms
-  unsigned long end_time = millis() + POLL_TIME;
-
-  // Record Relax Threshold
-  while (millis() < end_time) {
-      unsigned relax_signal = analogRead(MYO_PIN);
-      if (relax_signal > relax_threshold) {
-        relax_threshold = relax_signal;
-      }
-  } //end of relaxed calibration
-  Serial.println("relax threshold: ");
-  Serial.println(relax_threshold);
-
-  // Blink yellow 3 times to indicate that the user must begin flexing after the blinks
-  startupBlink(HIGH, HIGH, LOW);
-  
-  // stay yellow for ambient reading
-  writeColors(HIGH, HIGH, LOW);
-  
-  //record Ambient Threshold first time
-  end_time = millis() + POLL_TIME;
-  while (millis() < end_time) {
-      unsigned ambient_signal = analogRead(MYO_PIN);
-      Serial.println("current ambient threshold: ");
-      Serial.println(ambient_threshold);
-      if (ambient_signal > ambient_threshold) {
-        ambient_threshold = ambient_signal;
-      }
-  }
-
-  //Record Ambient Threshold if original is incorrect
-  while(ambient_threshold < 0.8*relax_threshold){
-    writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
-    delay(5); //wait for a moment before restarting
-    startupBlink(HIGH, HIGH, LOW);
-    writeColors(HIGH, HIGH, LOW); //light up blue again
-    end_time = millis() + POLL_TIME; //update end_time
-    while (millis() < end_time) {
-      Serial.println("current ambient threshold: ");
-      Serial.println(ambient_threshold);
-      unsigned ambient_signal = analogRead(MYO_PIN);
-      if (ambient_signal > ambient_threshold) {
-        ambient_threshold = ambient_signal;
-      }
-    }
-  } //end of ambient calibration
-  ambient_threshold *= 0.7;
-
-  //Serial.println("final ambient threshold: ");
-  //Serial.println(ambient_threshold);
-
   //start flex reading
   // Blink blue 3 times to indicate that the user must begin flexing after the blinks
   startupBlink(LOW, LOW, HIGH);
@@ -198,8 +140,8 @@ void calibrateSimple() {
     }
   } //end of calibration
 
-  Serial.println("final flex threshold: ");
-  Serial.println(flex_threshold);
+  //Serial.println("final flex threshold: ");
+  //Serial.println(flex_threshold);
   
   //flash green to signal successful calibration
   writeColors(LOW, HIGH, LOW);
