@@ -287,7 +287,7 @@ void loop() {
     writeColors(HIGH, HIGH, LOW);
   }
   else { //(volt_reg <= GREEN_THRESH)
-    writeColors(HIGH, LOW, PURPLE); //purple instead of green
+    writeColors(LOW, HIGH, LOW);
   }
   
   //Wait for muscle signal
@@ -297,8 +297,8 @@ void loop() {
     // return; // check how long writing to LEDs is
   }
   
-  // Make green while in use/above threshold
-  writeColors(LOW, HIGH, LOW);
+  // Make purple while in use/above threshold
+  writeColors(HIGH, LOW, HIGH);
 
   // Check if mode has changed;
   updateMode();
