@@ -131,24 +131,14 @@ void calibrateSimple() {
     // Serial.println(flex_signal);
   }
   
-  while(flex_max < DEFAULT_THRESH){
-    writeColors(HIGH, LOW, LOW); //flash red to signal that calibration didn't work
-    delay(5); //wait for a moment before restarting
-    startupBlink();
-    writeColors(LOW, LOW, HIGH); //light up blue again
-    //redo calibration
-    end_time = millis() + POLL_TIME;
-    while (millis() < end_time) {
-      unsigned flex_signal = analogRead(MYO_PIN);
-      if (flex_signal > flex_max) {
-        flex_max = flex_signal;
-      }
-    }
+  if(flex_max < DEFAULT_THRESH){
+    writeColors(LOW, HIGH, HIGH); //flash yellow to signal that calibration didn't work
+    flex_max = DEFAULT_THRESH;
   } //end of calibration
-  
-  //flash green to signal successful calibration
-  writeColors(LOW, HIGH, LOW);
-
+  else{
+    //flash green to signal successful calibration
+    writeColors(LOW, HIGH, LOW);
+  }
   // Set threshold to a fraction of its maximum reading
   threshold = flex_max * THRESH_MULTIPLIER;
 
