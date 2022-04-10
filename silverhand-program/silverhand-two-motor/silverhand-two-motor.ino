@@ -18,7 +18,7 @@
 #define SYSTEMDELAY 750 // delay for servo motors; want to try 1200
 #define DEFAULT_THRESH 300 // must be above 300 to change position
 #define DEFAULT_RELAXTHRESH 275 // must be below 275 to be able to read another flex
-#define POT_MAX 504 // the maximum value for the potentiometer
+#define POT_MAX 522 // the maximum value for the potentiometer
 
 // Parameters to fine tune
 // Number of reads to take in order to smooth out noise; it is recommended to take a power of 2 for computational efficiency
@@ -128,7 +128,6 @@ void calibrateSimple() {
     if (flex_signal > flex_max) {
       flex_max = flex_signal;
     }
-    // Serial.println(flex_signal);
   }
   
   if(flex_max < DEFAULT_THRESH){
@@ -142,14 +141,6 @@ void calibrateSimple() {
   // Set threshold to a fraction of its maximum reading
   threshold = flex_max * THRESH_MULTIPLIER;
 
-  // Turn off LED, indicating that the user need not flex anymore; not necessary, but here for uniformity
-  // writeColors(LOW, LOW, LOW);
-  
-  // Serial.println("done measuring");
-  // Serial.print("threshold:");
-  // Serial.println(threshold);
-  // return threshold;
-  // Serial.println("Calibratation Ended");
 }
 
 void setup() {
@@ -178,7 +169,7 @@ void setup() {
   //Set up MOSFET
   digitalWrite(MOSFET_PIN_TI,LOW);
   digitalWrite(MOSFET_PIN_MRP, LOW);
-  //Serial.begin(9600);
+  Serial.begin(9600);
   
   //Default the LED to off
   digitalWrite(LED_PIN_R, LOW);
@@ -222,17 +213,23 @@ void invertServoPos(int &pos, Servo &servo, int mos){
 void updateMotors () {
   // Mode will be updated via voice control
   switch(mode) {
-    case ti:
+    case ti: //silver - mode 2
+      Serial.println("ti");
       invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
       break;
-    case mrp:
+    case mrp: //red - mode 3
+      Serial.println("mrp");
       invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
       break;
-    case full:
+    case full: //gold: go between open hand and closed exclusively- mode 1
+      Serial.println("full");
       invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
-      invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      if (ti_pos != mrp_pos) {
+        invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
+      } //add == version to gold/full
       break;
-    case grab:
+    case grab://3 step grab, close mrp, close ti, open both (blue - mode 4)
+     //Serial.println("grab");
       if (ti_pos == OPEN && mrp_pos == OPEN){
         invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
       }
@@ -244,11 +241,12 @@ void updateMotors () {
         invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
       }
       break;
-    case any:
+    case any: //go between opposite positions exclusively - purple (mode 5)
+      //Serial.println("any");
       invertServoPos(ti_pos, ti_servo, MOSFET_PIN_TI);
       if (ti_pos == mrp_pos) {
         invertServoPos(mrp_pos, mrp_servo, MOSFET_PIN_MRP);
-      }
+      } //add == version to gold/full
       break;
   }
   
@@ -258,7 +256,9 @@ void updateMotors () {
 // Potentiometer-based control of mode selection
 void updateMode () {
   int pot_val = analogRead(MODE_POT_PIN);
-  mode = (Mode) map(pot_val % POT_MAX, 0, POT_MAX, 0, 4);
+  //Serial.println(pot_val);
+  mode = (Mode) map(pot_val, 0, POT_MAX, 0, 5);
+  mode = (mode > 4) ? 4 : mode;
 }
 
 void loop() {
