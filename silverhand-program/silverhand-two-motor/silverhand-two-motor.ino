@@ -29,6 +29,7 @@
 #define RELAX_THRESH_MULTIPLIER 0.9
 
 //The thresholds for the various LED colors - must be above each to show each respective color
+#define STOP_THRESH 615
 #define RED_THRESH 675
 #define YELLOW_THRESH 757
 #define GREEN_THRESH 859 //unnecessary but here for uniformity
@@ -280,25 +281,28 @@ void loop() {
     writeColors(LOW, HIGH, LOW);
   }
   
-  //Wait for muscle signal
-  while (smoothRead() < threshold) {
-    //DEBUG
-    //Serial.println(analogRead(MYO_PIN));
-    // return; // check how long writing to LEDs is
+  if(volt_reg <= STOP_THRESH){ //only if we have enough battery
+    //Wait for muscle signal
+    while (smoothRead() < threshold) {
+      //DEBUG
+      //Serial.println(analogRead(MYO_PIN));
+      // return; // check how long writing to LEDs is
+    }
+    
+    // Make purple while in use/above threshold
+    writeColors(HIGH, LOW, HIGH);
+  
+    // Check if mode has changed;
+    updateMode();
+    
+    // If the smooth read is above the threshold, it's a flex
+    updateMotors();
+    
+    //Wait for PULSEWIDTH time
+    delay(PULSEWIDTH);
+  
+    // Wait until below relax threshold if not already
+    while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
   }
   
-  // Make purple while in use/above threshold
-  writeColors(HIGH, LOW, HIGH);
-
-  // Check if mode has changed;
-  updateMode();
-  
-  // If the smooth read is above the threshold, it's a flex
-  updateMotors();
-  
-  //Wait for PULSEWIDTH time
-  delay(PULSEWIDTH);
-
-  // Wait until below relax threshold if not already
-  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
 }
