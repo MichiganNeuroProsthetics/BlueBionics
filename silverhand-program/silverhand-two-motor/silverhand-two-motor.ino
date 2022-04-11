@@ -281,7 +281,7 @@ void loop() {
     writeColors(LOW, HIGH, LOW);
   }
   
-  if(volt_reg <= STOP_THRESH){ //only if we have enough battery
+  if(volt_reg > STOP_THRESH){ //only if we have enough battery
     //Wait for muscle signal
     while (smoothRead() < threshold) {
       //DEBUG
