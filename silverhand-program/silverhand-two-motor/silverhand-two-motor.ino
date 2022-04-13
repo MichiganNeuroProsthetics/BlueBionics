@@ -281,8 +281,8 @@ void loop() {
     writeColors(LOW, HIGH, LOW);
   }
   
-  if(volt_reg > STOP_THRESH){ //only if we have enough battery
-    //Wait for muscle signal
+  //Wait for muscle signal
+  if(volt_reg >= STOP_THRESH){
     while (smoothRead() < threshold) {
       //DEBUG
       //Serial.println(analogRead(MYO_PIN));
@@ -304,5 +304,4 @@ void loop() {
     // Wait until below relax threshold if not already
     while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
   }
-  
 }
