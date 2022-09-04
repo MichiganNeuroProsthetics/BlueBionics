@@ -194,7 +194,7 @@ void loop() {
   // Toggle Servo Logic - when myoware signal is greater than threshold, change servo state (either open to close or close to open, depending on current state)
   if (analogRead(MYO_PIN) > threshold){
     // Flash purple to indicate flex/above threshold
-    writeColors(HIGH,LOW,HIGH)
+    writeColors(HIGH,LOW,HIGH);
 //  Serial.println(analogRead(MYO_PIN));
     // OPEN TO CLOSE
     if (pos == OPEN){
