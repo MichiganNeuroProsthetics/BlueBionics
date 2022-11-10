@@ -144,6 +144,19 @@ void calibrateSimple() {
 
 }
 
+// EMG Attempt: Calibrate optimal EMG threshold
+// *** Define globals to set ***
+
+// ***                       ***
+void calibrateLessSimple() {
+  // Implement calibration setup
+}
+
+bool userFlexing(unsigned emg_val) {
+  // Implement to take emg_value and return boolean for if flexing
+  return false;
+}
+
 void setup() {
   //Set up servo
   ti_servo.attach(TI_SERVO_PIN);
@@ -179,7 +192,7 @@ void setup() {
 
   // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
   if (state == CALIBRATION) {
-    calibrateSimple();
+    calibrateLessSimple();
   } else {
     threshold = DEFAULT_THRESH;
   }
@@ -283,7 +296,7 @@ void loop() {
   
   //Wait for muscle signal
   if(volt_reg >= STOP_THRESH){
-    while (smoothRead() < threshold) {
+    while (useFlexing(smoothRead())) {
       //DEBUG
       //Serial.println(analogRead(MYO_PIN));
       // return; // check how long writing to LEDs is
@@ -302,6 +315,6 @@ void loop() {
     delay(PULSEWIDTH);
   
     // Wait until below relax threshold if not already
-    while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) {}
+    while (userFlexing(smoothRead())) {}
   }
 }
