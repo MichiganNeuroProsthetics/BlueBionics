@@ -296,7 +296,7 @@ void loop() {
   
   //Wait for muscle signal
   if(volt_reg >= STOP_THRESH){
-    while (useFlexing(smoothRead())) {
+    while (userFlexing(smoothRead())) {
       //DEBUG
       //Serial.println(analogRead(MYO_PIN));
       // return; // check how long writing to LEDs is
