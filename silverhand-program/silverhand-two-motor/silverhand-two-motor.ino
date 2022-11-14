@@ -152,8 +152,12 @@ void calibrateLessSimple() {
   // Implement calibration setup
 }
 
-bool userFlexing(unsigned emg_val) {
+bool detectRampUp(unsigned emg_val) {
   // Implement to take emg_value and return boolean for if flexing
+  return false;
+}
+
+bool detectRampDown(unsigned emg_val) {
   return false;
 }
 
@@ -296,7 +300,7 @@ void loop() {
   
   //Wait for muscle signal
   if(volt_reg >= STOP_THRESH){
-    while (userFlexing(smoothRead())) {
+    while (detectRampUp(smoothRead())) {
       //DEBUG
       //Serial.println(analogRead(MYO_PIN));
       // return; // check how long writing to LEDs is
@@ -315,6 +319,6 @@ void loop() {
     delay(PULSEWIDTH);
   
     // Wait until below relax threshold if not already
-    while (userFlexing(smoothRead())) {}
+    while (detectRampDown(smoothRead())) {}
   }
 }
