@@ -47,6 +47,8 @@ enum states {
 // Simulated delay for the servo motors to activate
 #define DELAY_SERVO 250
 
+#define TRAIN_ITER_COUNT 4
+
 // Set whether we're using calibration mode or normal use, where the threshold is predefined
 static states state = CALIBRATION;
 
@@ -92,6 +94,21 @@ void startupBlink() {
     delay(DELAY_BLINK);
     // Flash blue
     writeColors(LOW, LOW, HIGH);
+    delay(DELAY_BLINK);
+    // Flash off
+    writeColors(LOW, LOW, LOW);
+  }
+}
+
+// Blink LED 3 times, leaving it on
+void startupBlinkRedGreen() {
+  for (uint8_t i = 0; i < 3; ++i) {
+    delay(DELAY_BLINK);
+    // Flash red
+    writeColors(HIGH, LOW, LOW);
+    delay(DELAY_BLINK);
+    // Flash green
+    writeColors(LOW, HIGH, LOW);
     delay(DELAY_BLINK);
     // Flash off
     writeColors(LOW, LOW, LOW);
@@ -148,8 +165,31 @@ void calibrateSimple() {
 // *** Define globals to set ***
 
 // ***                       ***
+int setup_emg_values [TRAIN_ITER_COUNT][POLL_TIME]
 void calibrateLessSimple() {
   // Implement calibration setup
+  
+  // Communicate user is entering startup
+  //  Red: stop flexing
+  //  Green: flex
+  startupBlinkRedGreen();
+
+  for (int train_iter = 0; train_iter < TRAIN_ITER_COUNT; ++train_iter) {
+    writeColors(HIGH, LOW, LOW);
+
+    unsigned long end_time = millis() + 1000;
+    while (millis() < end_time) {}
+
+    writeColors(LOW, HIGH, LOW);
+    while (for unsigned poll_id = 0; poll_id < POLL_TIME; ++poll_id) {
+      emg_values[train_iter][poll_id] = analogRead(MYO_PIN);
+      // Wait for a millisecond before getting next data point
+      end_time = millis() + 1;
+      while (millis() < end_time) {}
+    }
+  }
+
+  // Setup your code
 }
 
 bool detectRampUp(unsigned emg_val) {
