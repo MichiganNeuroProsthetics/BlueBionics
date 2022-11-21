@@ -165,7 +165,8 @@ void calibrateSimple() {
 // *** Define globals to set ***
 
 // ***                       ***
-int emg_values [TRAIN_ITER_COUNT][POLL_TIME]
+int emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
+int emg_rest_values [TRAIN_ITER_COUNT][POLL_TIME];
 void calibrateLessSimple() {
   // Implement calibration setup
   
@@ -176,13 +177,18 @@ void calibrateLessSimple() {
 
   for (int train_iter = 0; train_iter < TRAIN_ITER_COUNT; ++train_iter) {
     writeColors(HIGH, LOW, LOW);
-
-    unsigned long end_time = millis() + 1000;
-    while (millis() < end_time) {}
+    // TODO: add reation time delay
+    for (unsigned poll_id = 0; poll_id < POLL_TIME; ++poll_id) {
+      emg_rest_values[train_iter][poll_id] = analogRead(MYO_PIN);
+      // Wait for a millisecond before getting next data point
+      end_time = millis() + 1;
+      while (millis() < end_time) {}
+    }
 
     writeColors(LOW, HIGH, LOW);
-    while (for unsigned poll_id = 0; poll_id < POLL_TIME; ++poll_id) {
-      emg_values[train_iter][poll_id] = analogRead(MYO_PIN);
+    // TODO: add reation time delay
+    for (unsigned poll_id = 0; poll_id < POLL_TIME; ++poll_id) {
+      emg_flex_values[train_iter][poll_id] = analogRead(MYO_PIN);
       // Wait for a millisecond before getting next data point
       end_time = millis() + 1;
       while (millis() < end_time) {}
