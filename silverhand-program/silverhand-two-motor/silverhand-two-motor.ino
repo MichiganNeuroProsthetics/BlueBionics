@@ -162,7 +162,7 @@ void calibrateSimple() {
 }
 
 // EMG Attempt: Calibrate optimal EMG threshold
-// *** Define globals to set ***
+// *** TODO: Define globals to set ***
 
 // ***                       ***
 unsigned emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
@@ -174,7 +174,9 @@ void processLabeledData(/* Use emg_flex_values and emg_rest_values */) {
     emg_value_window[i] = 0;
   }
 
-  // Set global parameters to allow detectRampUp and detectRampDown to work
+  // TODO: Set global parameters to allow detectRampUp and detectRampDown to work
+
+
 }
 
 void setLabeledData() {
@@ -204,41 +206,17 @@ void setLabeledData() {
       while (millis() < end_time) {}
     }
   }
-
-  // Setup your code
-
-  //calculate threshold (peaky used as threshold is global variable)
-  int peaky;
-  for (int train_iter = 0; train_iter < TRAIN_ITER_COUNT; ++train_iter) {
-    int max = 0;
-    while (for unsigned poll_id = 0; poll_id < POLL_TIME; ++poll_id) {
-      if(emg_values[train_iter][poll_id] > max){
-        max = emg_values[train_iter][poll_id];
-      }
-    }
-    if(train_iter == 0){
-      peaky = max;
-    }
-    else{
-      peaky = ((peaky * train_iter) + max) / (train_iter + 1);
-    }
-  }
-
-
-  //
-  
-  threshold = peaky * THRESH_MULTIPLIER;
 }
 
 // 
 
 bool detectRampUp(/* Use emg_value_window array */) {
-  // Implement to use global emg value window array and return true on ramp up (starting to flex)
+  // TODO: Implement to use global emg value window array and return true on ramp up (starting to flex)
   return false;
 }
 
 bool detectRampDown(/* Use emg_value_window array */) {
-  // Implement to use global emg value window array and return true on ramp up (stop flexing)
+  // TODO: Implement to use global emg value window array and return true on ramp up (stop flexing)
   return false;
 }
 
