@@ -167,7 +167,13 @@ void calibrateSimple() {
 // ***                       ***
 int emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
 int emg_rest_values [TRAIN_ITER_COUNT][POLL_TIME];
-void calibrateLessSimple() {
+int emg_value_window [POLL_TIME];
+
+void processLabeledData(/* Use emg_flex_values and emg_rest_values */) {
+  // Set global parameters to allow detectRampUp and detectRampDown to work
+}
+
+void setLabeledData() {
   // Implement calibration setup
   
   // Communicate user is entering startup
@@ -220,12 +226,15 @@ void calibrateLessSimple() {
   threshold = peaky * THRESH_MULTIPLIER;
 }
 
-bool detectRampUp(unsigned emg_val) {
-  // Implement to take emg_value and return boolean for if flexing
+// 
+
+bool detectRampUp(/* Use emg_value_window array */) {
+  // Implement to use global emg value window array and return true on ramp up (starting to flex)
   return false;
 }
 
-bool detectRampDown(unsigned emg_val) {
+bool detectRampDown(/* Use emg_value_window array */) {
+  // Implement to use global emg value window array and return true on ramp up (stop flexing)
   return false;
 }
 
@@ -347,6 +356,14 @@ void updateMode () {
   mode = (mode > 4) ? 4 : mode;
 }
 
+void update_emg_value_window (unsigned emg_reading) {
+  // Setting from last timestamp to earliest
+  for (unsigned i = POLL_TIME - 1; i > 0; --i) {
+    emg_value_window[i] = emg_value_window[i - 1];
+  }
+  emg_value_window[0] = emg_reading;
+}
+
 void loop() {
   // Battery signal
   volt_reg = analogRead(LED_IN);
@@ -365,10 +382,13 @@ void loop() {
   else { //(volt_reg <= GREEN_THRESH)
     writeColors(LOW, HIGH, LOW);
   }
+
+  update_emg_value_window(smoothRead());
   
   //Wait for muscle signal
   if(volt_reg >= STOP_THRESH){
-    while (detectRampUp(smoothRead())) {
+
+    while (detectRampUp()) {
       //DEBUG
       //Serial.println(analogRead(MYO_PIN));
       // return; // check how long writing to LEDs is
@@ -387,6 +407,6 @@ void loop() {
     delay(PULSEWIDTH);
   
     // Wait until below relax threshold if not already
-    while (detectRampDown(smoothRead())) {}
+    while (detectRampDown()) {}
   }
 }
