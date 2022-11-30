@@ -165,11 +165,15 @@ void calibrateSimple() {
 // *** Define globals to set ***
 
 // ***                       ***
-int emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
-int emg_rest_values [TRAIN_ITER_COUNT][POLL_TIME];
-int emg_value_window [POLL_TIME];
+unsigned emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
+unsigned emg_rest_values [TRAIN_ITER_COUNT][POLL_TIME];
+unsigned emg_value_window [POLL_TIME];
 
 void processLabeledData(/* Use emg_flex_values and emg_rest_values */) {
+  for (unsigned i = 0; i < POLL_TIME; ++i) {
+    emg_value_window[i] = 0;
+  }
+
   // Set global parameters to allow detectRampUp and detectRampDown to work
 }
 
