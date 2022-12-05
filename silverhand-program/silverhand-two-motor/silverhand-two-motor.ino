@@ -255,7 +255,7 @@ void setup() {
 
   // If state is set here to calibration, it will undergo normal calibration; if not, it will have a static threshold
   if (state == CALIBRATION) {
-    calibrateLessSimple();
+    processLabeledData();
   } else {
     threshold = DEFAULT_THRESH;
   }
