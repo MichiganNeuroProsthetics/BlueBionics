@@ -162,7 +162,7 @@ void calibrateSimple() {
 }
 
 // EMG Attempt: Calibrate optimal EMG threshold
-// *** TODO: Define globals to set ***
+// *** EMG TODO: Define globals to set ***
 
 // ***                       ***
 unsigned emg_flex_values [TRAIN_ITER_COUNT][POLL_TIME];
@@ -174,7 +174,7 @@ void processLabeledData(/* Use emg_flex_values and emg_rest_values */) {
     emg_value_window[i] = 0;
   }
 
-  // TODO: Set global parameters to allow detectRampUp and detectRampDown to work
+  // EMG TODO: Set global parameters to allow detectRampUp and detectRampDown to work
 
 
 }
@@ -208,15 +208,15 @@ void setLabeledData() {
   }
 }
 
-// 
+// EMG TODO: Optional - write helper function for below EMG functions
 
 bool detectRampUp(/* Use emg_value_window array */) {
-  // TODO: Implement to use global emg value window array and return true on ramp up (starting to flex)
+  // EMG TODO: Implement to use global emg value window array and return true on ramp up (starting to flex)
   return false;
 }
 
 bool detectRampDown(/* Use emg_value_window array */) {
-  // TODO: Implement to use global emg value window array and return true on ramp up (stop flexing)
+  // EMG TODO: Implement to use global emg value window array and return true on ramp up (stop flexing)
   return false;
 }
 
