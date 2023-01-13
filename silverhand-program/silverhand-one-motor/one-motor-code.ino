@@ -3,8 +3,8 @@
 // **ONE MOTOR CODE - LAST UPDATED 9/4/2022** //
 
 // **Pin Definitions** //
-#define SERVO_PIN 11
-#define MOSFET_PIN 12
+#define SERVO_PIN 9
+#define MOSFET_PIN 8
 #define MYO_PIN A0 // Pin for the myoware sensor
 // Pins for the LED components
 #define LED_PIN_R 2 // Red
