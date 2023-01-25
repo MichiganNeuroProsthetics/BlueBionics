@@ -13,7 +13,7 @@
 #define LED_IN A1 // Battery voltage signal - LED input
 
 // **Servo Positions** //
-#define OPEN 40
+#define OPEN 0
 #define CLOSE 140
 
 // **Time Delays** //
