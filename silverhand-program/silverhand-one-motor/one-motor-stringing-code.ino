@@ -7,8 +7,8 @@
 
 Servo myservo1;
 //Servo myservo2;
-int pos = 0;
-int deg = 180; // Change this value to change the servos' position; input 0, 179, 180
+int pos = 120; // Put starting degree value here
+int deg = 40; // Put end degree value here
 
 
 void setup() {
@@ -25,10 +25,10 @@ void setup() {
 
 
 
-  if (deg == 0) {
+  if (deg <= pos) {
     //For 0 degrees:
 
-    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+    for (pos = 180; pos >= deg; pos -= 1) { // goes from 180 degrees to 0 degrees
       myservo1.write(pos);              // tell servo to go to position in variable ‘pos’
       //myservo2.write(pos);
       Serial.println(pos);
@@ -37,7 +37,7 @@ void setup() {
   }
   else {
     //For 180 Degrees
-    for (pos = 0; pos <= 180; pos++) { // goes from 0 degrees to 180 degrees
+    for (pos = 0; pos <= deg; pos++) { // goes from 0 degrees to 180 degrees
       // in steps of 1 degree
       myservo1.write(pos);              // tell servo to go to position in variable ‘pos’
       //myservo2.write(pos);
