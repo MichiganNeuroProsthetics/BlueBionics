@@ -102,6 +102,7 @@ void calibrate() {
 
 
 void toggleMotor() {
+  writeColors(HIGH, LOW, HIGH); //purple for flexing
   if (deg <= pos) {
     //For 0 degrees:
     //open hand
