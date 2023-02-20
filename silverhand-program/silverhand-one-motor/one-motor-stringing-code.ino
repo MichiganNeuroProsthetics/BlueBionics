@@ -1,8 +1,8 @@
 // This code will be used for stringing the servos of a one motor system
 #include <Servo.h>
-#define SERVO_PIN1 11//11
+#define SERVO_PIN1 9//11
 //#define SERVO_PIN2 10
-#define MOSFET_PIN1 12
+#define MOSFET_PIN1 8
 //#define MOSFET_PIN2 13
 
 Servo myservo1;
