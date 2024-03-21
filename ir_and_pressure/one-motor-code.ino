@@ -1,11 +1,6 @@
 // **ONE MOTOR CODE - LAST UPDATED 1/31/2023** //
 
-#include <Servo.h>
-#define SERVO_PIN1 9//11
-//#define SERVO_PIN2 10
-#define MOSFET_PIN1 8
-//#define MOSFET_PIN2 13
-#define MYO_PIN A0
+// #include <Servo.h>
 #define POLL_TIME 5000 // 5 seconds
 #define DELAY_BLINK 500
 
@@ -25,6 +20,7 @@
 #define LED_PIN_G 3 // Green
 #define LED_PIN_B 4 // Blue
 #define LED_IN A1 // Battery voltage signal - LED input
+#define BATTERY A6
 
 // **LED Thresholds - indicates battery level; must be above each to show respective color** //
 #define RED_THRESH 675
@@ -34,11 +30,14 @@
 #define SMOOTH_READS 8
 #define THRESH_MULTIPLIER 0.75
 #define RELAX_THRESH_MULTIPLIER 0.9
-#define fsrAnalogPin = A0;
 
+#define fsrAnalogPin = A0;
 int fsrReading = 0;
 #define IRSensor = 11; 
-#define dcmotor = 9;
+#define in1 = 8;
+#define in2 = 9; //both low => turns off, 1 high 2 low, turn backward, opposite forward 
+#define enable1 = 10; // 0-255, sets speed/voltage
+#define MODULAR_HAND = A4; // read in to know which modular component is connected
 int closedHand = false;
 int sensorStatus = 0;
 int LED = 12;
@@ -183,7 +182,7 @@ void toggleMotor(int reading) {
 }
 
 void batteryCheck() {
-  volt_reg = analogRead(LED_IN);
+  volt_reg = analogRead(BATTERY);
   Serial.println("battery check");
   // If below RED_THRESH, the battery is extremely low; if below YELLOW_THRESH, should change soon; if below GREEN_THRESH, you're fine
   if (volt_reg < RED_THRESH) {
