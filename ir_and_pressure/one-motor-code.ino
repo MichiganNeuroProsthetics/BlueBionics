@@ -31,13 +31,15 @@
 #define THRESH_MULTIPLIER 0.75
 #define RELAX_THRESH_MULTIPLIER 0.9
 
-#define fsrAnalogPin = A0;
+#define fsrAnalogPin A0
+
+#define IRSensor 11
+#define in1 7
+#define in2 8 //both low => turns off, 1 high 2 low, turn backward, opposite forward 
+#define enable1 9 // 0-255, sets speed/voltage
+#define MODULAR_HAND A4 // read in to know which modular component is connected
+
 int fsrReading = 0;
-#define IRSensor = 11; 
-#define in1 = 8;
-#define in2 = 9; //both low => turns off, 1 high 2 low, turn backward, opposite forward 
-#define enable1 = 10; // 0-255, sets speed/voltage
-#define MODULAR_HAND = A4; // read in to know which modular component is connected
 int closedHand = false;
 int sensorStatus = 0;
 int LED = 12;
@@ -128,10 +130,10 @@ void calibrate() {
 
 void toggleMotor(int reading) {
   writeColors(HIGH, LOW, HIGH); //purple for flexing
-  digitalWrite(MOSFET_PIN1,HIGH);
+  //digitalWrite(MOSFET_PIN1,HIGH);
 
   int scaled_value = map(reading, 0, 1023, 0 , 255);
-  analogWrite(enableA, scaled_value); // Send scaled value to enableA 
+  analogWrite(enable1, scaled_value); // Send scaled value to enableA 
 
   if (!closedHand) { // if hand is open
     // close hand -- this rotates forward, not sure if that opens or closes
@@ -139,7 +141,7 @@ void toggleMotor(int reading) {
     digitalWrite(in2, LOW);
     closedHand = true;
     delay(20); // specifies how long the motor rotates for
-    digitalWrite(in2, HIGH); // if in1=in2, motor stop rotating. could also do (in1, LOW)
+    digitalWrite(in1, LOW); // if in1=in2, motor stop rotating. could also do (in1, LOW)
   }
   else { // hand is closed
     // open hand -- this rotates backward, not sure if that opens or closes
@@ -148,36 +150,6 @@ void toggleMotor(int reading) {
     closedHand = false;
     delay(20);
     digitalWrite(in2, LOW); // if in1=in2, motor stop rotating. could also do (in1, HIGH)
-  }
-
-  if (deg <= pos) {
-    //For 0 degrees:
-    //open hand
-    for (pos = 140; pos >= deg; pos -= 1) { // goes from 180 degrees to 0 degrees
-      myservo1.write(pos);              // tell servo to go to position in variable ‘pos’
-      //myservo2.write(pos);
-      Serial.println("opening");
-      delay(15);                  // waits 15ms for the servo to reach the position
-    }
-    pos = 0;
-    deg = 140;
-    
-  }
-  else {
-    //close hand
-    for (pos = 0; pos <= deg; pos++) { // goes from 0 degrees to 180 degrees
-      // in steps of 1 degree
-      myservo1.write(pos);              // tell servo to go to position in variable ‘pos’
-      //myservo2.write(pos);
-      Serial.println("closing");
-      delay(15);                       // waits 15ms for the servo to reach the position
-    }
-    pos = 140;
-    deg = 0;
-  }
-  digitalWrite(MOSFET_PIN1,LOW);
-  while (smoothRead() > threshold * RELAX_THRESH_MULTIPLIER) { //worked with analogRead(MYO_PIN) > threshold()
-    Serial.println("Waiting to reach relax threshold");
   }
 }
 
@@ -222,35 +194,38 @@ void batteryCheck() {
 
 void setup() {
   //Setup IO
-  myservo1.attach(SERVO_PIN1);
-  //myservo2.attach(SERVO_PIN2);
-  pinMode(MOSFET_PIN1, OUTPUT);
+//  myservo1.attach(SERVO_PIN1);
+//  //myservo2.attach(SERVO_PIN2);
+//  pinMode(MOSFET_PIN1, OUTPUT);
   pinMode(LED_PIN_R, OUTPUT);
   pinMode(LED_PIN_G, OUTPUT);
   pinMode(LED_PIN_B, OUTPUT);
   pinMode(LED_IN, INPUT); // analog pin reading in battery voltage
 
-  volt_reg = analogRead(LED_IN);
+  volt_reg = analogRead(BATTERY);
   //pinMode(MOSFET_PIN2, OUTPUT);
   //Set Initial State
-  digitalWrite(MOSFET_PIN1,HIGH);
+//  digitalWrite(MOSFET_PIN1,HIGH);
   pinMode(fsrAnalogPin, INPUT);
   //digitalWrite(MOSFET_PIN2,HIGH);
   Serial.begin(9600);
   delay(50);
-
-  calibrate();
 }
 
 void loop() {
-   batteryCheck();
-   int reading = smoothRead();
-   if(reading > threshold && IRSensor == 1){
-    toggleMotor(reading);
-    while (smoothRead() > threshold) {
-      //waits till the signal dies down before continuining to anything
-    }
-   }
-   toggleMotor(); //open once they stop pressing the button
-   delay(PULSEWIDTH);
+  toggleMotor(1000);
+  delay(100);
+  toggleMotor(1000); //open once they stop pressing the button
+  delay(100);
+  
+  // batteryCheck();
+  // int reading = smoothRead();
+  // if(reading > threshold && IRSensor == 1){
+  //   toggleMotor(reading);
+  //   while (smoothRead() > threshold) {
+  //     //waits till the signal dies down before continuining to anything
+  //   }
+  //  }
+  //  toggleMotor(); //open once they stop pressing the button
+  //  delay(PULSEWIDTH);
 }
